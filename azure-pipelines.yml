@@ -1,0 +1,53 @@
+pool:
+  name: Hosted VS2017
+
+variables:
+  buildConfiguration: 'Debug'
+  buildVersion: 0.1.$(Build.BuildId)-alpha
+
+steps:
+  - task: DotNetCoreInstaller@0
+    displayName: "Use .NET Core sdk 2.2.100"
+    inputs:
+      version: 2.2.100
+  - task: NuGetToolInstaller@0
+    displayName: 'Use NuGet 4.9.x'
+    inputs:
+      versionSpec: 4.9.x
+  - task: DotNetCoreCLI@2
+    displayName: Build
+    inputs:
+      projects: "src/**/*.csproj"
+      arguments: "--configuration $(BuildConfiguration)"
+  - task: DotNetCoreCLI@2
+    displayName: Test
+    inputs:
+      command: test
+      projects: |
+        src/**/*UnitTests/*.csproj
+      arguments: "--no-build" 
+  - task: DotNetCoreCLI@2
+    displayName: "Pack (flow)"
+    inputs:
+      command: custom
+      projects: "**/Flow.Rules.Engine.csproj"
+      custom: "pack "
+      arguments: "--no-build --include-symbols -p:Configuration=$(BuildConfiguration);OutputDirectory=$(Build.ArtifactStagingDirectory);SymbolPackageFormat=snupkg;PackageVersion=$(buildVersion) -o $(Build.ArtifactStagingDirectory)"
+      versioningScheme: byBuildNumber
+      buildProperties: "SymbolPackageFormat=snupkg"
+  - task: NuGetCommand@2
+    displayName: 'NuGet push (master)'
+    inputs:
+        command: push
+        nuGetFeedType: external
+        publishFeedCredentials: 'flowengine_nuget'
+        packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg'
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/master')
+  - task: NuGetCommand@2
+    displayName: 'NuGet push (develop)'
+    inputs:
+        command: push
+        nuGetFeedType: external
+        publishFeedCredentials: 'flowengine_myget'
+        packagesToPush: '$(Build.ArtifactStagingDirectory)/**/*.nupkg'
+    condition: eq(variables['Build.SourceBranch'], 'refs/heads/develop')
