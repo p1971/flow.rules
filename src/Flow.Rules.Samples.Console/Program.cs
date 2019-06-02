@@ -22,18 +22,18 @@ namespace Flow.Rules.Samples.Console
 
             serviceCollection.AddFlowRules(GetPolicy, o => o.Lookups = GetLookups());
 
-            var serviceProvider = serviceCollection.BuildServiceProvider();
+            ServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
-            var policyManager = serviceProvider.GetService<IPolicyManager<MortgageApplication>>();
+            IPolicyManager<MortgageApplication> policyManager = serviceProvider.GetService<IPolicyManager<MortgageApplication>>();
 
-            var testAlbum = new MortgageApplication
+            MortgageApplication testMortgage = new MortgageApplication
             {
                 ApplicantAge = 21,
                 LoanAmount = 200_000,
                 MortgageType = "FTB"
             };
 
-            var results = policyManager.Execute(Guid.NewGuid(), "policy1", testAlbum);
+            PolicyExecutionResult results = policyManager.Execute(Guid.NewGuid(), "policy1", testMortgage);
 
             ILogger<MortgageApplication> logger = serviceProvider.GetService<ILogger<MortgageApplication>>();
 
@@ -44,9 +44,9 @@ namespace Flow.Rules.Samples.Console
                 results.Passed,
                 results.Message ?? string.Empty);
 
-            if (results.RuleExecutionResults.Any())
+            if (results.RuleExecutionResults.Length > 0)
             {
-                foreach (var result in results.RuleExecutionResults)
+                foreach (RuleExecutionResult result in results.RuleExecutionResults)
                 {
                     logger.LogInformation("[{Id}]:[{Name}] - {Passed} {Message}", result.Id, result.Name, result.Passed, result.Message ?? string.Empty);
                 }
@@ -64,8 +64,8 @@ namespace Flow.Rules.Samples.Console
                 (r) => $"The {nameof(r.MortgageType)} [{r.MortgageType}] is not known.",
                 (request, lookup, calendar) =>
                 {
-                    var mortgageType = lookup["Default"][request.MortgageType];
-                    return (mortgageType != null);
+                    ColumnResolver mortgageType = lookup["Default"][request.MortgageType];
+                    return mortgageType != null;
                 });
 
             Rule<MortgageApplication> ageLimitRule = new Rule<MortgageApplication>(
@@ -75,7 +75,7 @@ namespace Flow.Rules.Samples.Console
                 (r) => $"The {nameof(r.ApplicantAge)} [{r.ApplicantAge}] is too young.",
                 (request, lookup, calendar) =>
                 {
-                    var minAgeForMortgage = (int)lookup["Default"][request.MortgageType]["MinApplicantAge"];
+                    int minAgeForMortgage = lookup["Default"][request.MortgageType]["MinApplicantAge"].As<int>();
                     return request.ApplicantAge >= minAgeForMortgage;
                 });
 
@@ -86,7 +86,7 @@ namespace Flow.Rules.Samples.Console
                 (r) => $"The {nameof(r.LoanAmount)} [{r.LoanAmount}] is too small.",
                 (request, lookup, calendar) =>
                 {
-                    var minLoanAmount = (int)lookup["Default"][request.MortgageType]["MinLoan"];
+                    int minLoanAmount = lookup["Default"][request.MortgageType]["MinLoan"].As<int>();
                     return request.LoanAmount >= minLoanAmount;
                 });
 
@@ -97,7 +97,7 @@ namespace Flow.Rules.Samples.Console
                 (r) => $"The {nameof(r.LoanAmount)} [{r.LoanAmount}] is too large.",
                 (request, lookup, calendar) =>
                 {
-                    var maxLoanAmount = (int)lookup["Default"][request.MortgageType]["MaxLoan"];
+                    int maxLoanAmount = lookup["Default"][request.MortgageType]["MaxLoan"].As<int>();
                     return request.LoanAmount <= maxLoanAmount;
                 });
 

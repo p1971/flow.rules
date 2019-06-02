@@ -21,7 +21,7 @@ namespace Flow.Rules.Engine.UnitTests
             Mock<ILookupProvider> mockLookupProvider =
                 new Mock<ILookupProvider>();
 
-            var policy = new Policy<PersonDataModel>("p1", policyName);
+            Policy<PersonDataModel> policy = new Policy<PersonDataModel>("p1", policyName);
 
             IPolicyManager<PersonDataModel> policyManager =
                 new PolicyManager<PersonDataModel>(policy, mockPolicyExecutor.Object, mockLookupProvider.Object);

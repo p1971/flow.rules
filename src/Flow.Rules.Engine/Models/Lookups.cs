@@ -15,9 +15,9 @@ namespace Flow.Rules.Engine.Models
 
         public Lookups(List<(string page, string row, string column, object value)> data)
         {
-            foreach (var tuple in data)
+            foreach ((string page, string row, string column, object value) in data)
             {
-                this[tuple.page][tuple.row][tuple.column] = tuple.value;
+                this[page][row][column] = new ValueResolver(value);
             }
         }
 

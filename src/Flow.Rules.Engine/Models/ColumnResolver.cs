@@ -8,7 +8,7 @@ namespace Flow.Rules.Engine.Models
         private readonly IDictionary<string, object> _dictionary =
             new ConcurrentDictionary<string, object>();
 
-        public object this[string name]
+        public ValueResolver this[string name]
         {
             get
             {
@@ -16,7 +16,7 @@ namespace Flow.Rules.Engine.Models
                 {
                     _dictionary.Add(name, null);
                 }
-                return _dictionary[name];
+                return new ValueResolver(_dictionary[name]);
             }
             set
             {

@@ -16,13 +16,13 @@ namespace Flow.Rules.Engine
 
         public IList<RuleExecutionResult> Execute<T>(Policy<T> policy, T request, Lookups lookups) where T : class
         {
-            IList<RuleExecutionResult> ruleExectionResults = new List<RuleExecutionResult>();
+            IList<RuleExecutionResult> ruleExecutionResults = new List<RuleExecutionResult>();
             foreach (Rule<T> rule in policy.Rules)
             {
                 RuleExecutionResult response = Execute(rule, request, lookups);
-                ruleExectionResults.Add(response);
+                ruleExecutionResults.Add(response);
             }
-            return ruleExectionResults;
+            return ruleExecutionResults;
         }
 
         private RuleExecutionResult Execute<T>(Rule<T> rule, T request, Lookups lookups)
@@ -32,7 +32,7 @@ namespace Flow.Rules.Engine
 
             try
             {
-                bool passed = rule.Source.Invoke(request, lookups, this._calendarProvider);
+                bool passed = rule.Source.Invoke(request, lookups, _calendarProvider);
                 result.Passed = passed;
                 if (!passed)
                 {
