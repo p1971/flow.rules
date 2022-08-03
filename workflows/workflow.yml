@@ -1,0 +1,138 @@
+name: flowrules_build
+
+on: [push]
+
+env:
+  BuildConfiguration: Release
+  NugetPackagePath: $HOME/nuget
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout source code
+      uses: actions/checkout@v2
+
+    - name: Fetch git history
+      run: git fetch --prune --unshallow
+
+    - name: Install GitVersion
+      uses: gittools/actions/gitversion/setup@v0.9.9
+      with:
+          versionSpec: '5.x'
+
+    - name: Determine semantic version
+      id: gitversion
+      uses: gittools/actions/gitversion/execute@v0.9.9
+
+    - name: Setup .NET Core
+      uses: actions/setup-dotnet@v1
+      with:
+          dotnet-version: '6.0.100'
+
+    - name: dotnet clean
+      run: dotnet clean src
+
+    - name: Lint Code Base
+      uses: docker://github/super-linter:v2.1.0
+      env:
+        VALIDATE_ALL_CODEBASE: false
+        DISABLE_ERRORS:  true
+
+    - name: dotnet build
+      run: dotnet build src/FlowRules.sln --configuration ${{ env.BuildConfiguration }} /p:Version=${{ steps.gitversion.outputs.AssemblySemVer }};AssemblyFileVersion=${{ steps.gitversion.outputs.AssemblySemVer }};AssemblyVersion=${{ steps.gitversion.outputs.AssemblySemVer }};AssemblyInformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }}
+
+    - name: dotnet test 
+      run: dotnet test --logger:"trx;LogFileName=./TestResults.xml" --filter Category!=Extension --no-build /p:CollectCoverage=true /p:CoverletOutput=TestResults /p:CoverletOutputFormat=lcov --configuration ${{ env.BuildConfiguration }} src  
+
+    - name: Test Report
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
+      with:
+        name: Tests            
+        path: ./**/TestResults.xml 
+        reporter: dotnet-trx       
+
+    - name: Publish coverage report to codecov.io (UNIT)
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN  }}
+        files: src/FlowRules.Engine.UnitTests/TestResults.info
+        flags: unit
+
+    - name: nuget packaging
+      run: |
+            dotnet pack src/FlowRules.Engine/FlowRules.Engine.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath}} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.NuGetVersion }};SymbolPackageFormat=snupkg
+            dotnet pack src/FlowRules.WebApi/FlowRules.WebApi.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath}} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.NuGetVersion }};SymbolPackageFormat=snupkg            
+            dotnet pack src/FlowRules.Extensions.SqlServer/FlowRules.Extensions.SqlServer.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath}} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.NuGetVersion }};SymbolPackageFormat=snupkg
+            echo "VERSION=${{ steps.gitversion.outputs.NuGetVersion }}" >> $GITHUB_ENV
+            ls ${{ env.NugetPackagePath}}/*
+            echo "${{ steps.gitversion.outputs.NuGetVersion }}" > ${{ env.NugetPackagePath}}/version.txt
+
+    - name: Setup nuget.exe
+      uses: nuget/setup-nuget@v1
+      with:
+        nuget-version: latest
+
+    - name: list packages
+      run: ls -l /home/runner/nuget
+
+    - name: Upload nuget packages
+      uses: actions/upload-artifact@v1
+      with:
+        name: nuget_packages
+        path: /home/runner/nuget
+
+  publish-packages:
+    runs-on: ubuntu-latest
+    needs: test-templates
+    steps:
+
+      - name: download
+        uses: actions/download-artifact@v1
+        with:
+          name: nuget_packages
+
+      - name: Extract version from artifact
+        run: |
+            version=`cat ./nuget_packages/version.txt`
+            echo "VERSION=$version" >> $GITHUB_ENV
+
+      - name: Setup nuget.exe
+        uses: nuget/setup-nuget@v1
+        with:
+          nuget-version: latest
+
+      - name: setup nuget config
+        run: |
+          nuget source Add -Name "GitHub" -Source "https://nuget.pkg.github.com/p1971/index.json"
+          nuget setApiKey ${{secrets.GH_NUGET_API_KEY}} -Source "https://nuget.pkg.github.com/p1971/index.json"
+
+      - name: Push generated package to GitHub registry
+        if: contains(github.ref, 'develop') || contains(github.ref, 'releases')
+        run: |
+          for f in ./nuget_packages/*.nupkg
+          do
+              nuget push $f -Source "https://nuget.pkg.github.com/p1971/index.json" -SkipDuplicate -ApiKey ${{secrets.GH_NUGET_API_KEY}}
+          done
+        shell: bash
+
+      - name: Push generated package to Nuget registry
+        if: contains(github.ref, 'master')
+        run: |
+          for f in ./nuget_packages/*.nupkg
+          do
+              nuget push $f -Source "https://api.nuget.org/v3/index.json" -SkipDuplicate -ApiKey ${{secrets.NUGET_API_KEY}}
+          done
+        shell: bash
+
+      - name: Create Release
+        if: contains(github.ref, 'master')
+        id: create_release
+        uses: ncipollo/release-action@v1        
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          artifacts: "./nuget_packages/*"
+          tag: ${{ env.VERSION }} 

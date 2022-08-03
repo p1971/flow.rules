@@ -1,0 +1,8 @@
+version: 2
+updates:
+  - directory: "/src"
+    open-pull-requests-limit: 1
+    package-ecosystem: nuget
+    rebase-strategy: auto
+    schedule:
+      interval: weekly

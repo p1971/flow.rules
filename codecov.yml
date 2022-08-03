@@ -1,0 +1,3 @@
+ignore:
+  - "**/FlowRules.Engine.UnitTests"
+  - "**/FlowRules.Samples*"

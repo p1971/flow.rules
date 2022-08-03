@@ -1,0 +1,4 @@
+is_global = true
+
+# IDE0037: Use inferred member name
+dotnet_diagnostic.IDE0037.severity = silent
