@@ -87,7 +87,7 @@ jobs:
 
   publish-packages:
     runs-on: ubuntu-latest
-    needs: test-templates
+    needs: build
     steps:
 
       - name: download

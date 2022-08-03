@@ -30,7 +30,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlowRules.Extensions.SqlSer
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{6D80B6FE-97B0-40A6-8EFF-D26EA9AED093}"
 	ProjectSection(SolutionItems) = preProject
-		..\workflows\workflow.yml = ..\workflows\workflow.yml
+		..\.github\workflows\workflow.yml = ..\.github\workflows\workflow.yml
 	EndProjectSection
 EndProject
 Global
