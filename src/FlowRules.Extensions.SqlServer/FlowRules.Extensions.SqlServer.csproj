@@ -3,8 +3,8 @@
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
     <Authors>Pete Robinson</Authors>
-    <PackageProjectUrl>https://github.com/p1971/flow.engine</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/p1971/flow.engine</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/p1971/flow.rules.engine</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/p1971/flow.rules.engine</RepositoryUrl>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RepositoryType>git</RepositoryType>

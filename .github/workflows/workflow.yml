@@ -64,12 +64,11 @@ jobs:
 
     - name: nuget packaging
       run: |
-            dotnet pack src/FlowRules.Engine/FlowRules.Engine.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath}} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.NuGetVersion }};SymbolPackageFormat=snupkg
-            dotnet pack src/FlowRules.WebApi/FlowRules.WebApi.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath}} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.NuGetVersion }};SymbolPackageFormat=snupkg            
-            dotnet pack src/FlowRules.Extensions.SqlServer/FlowRules.Extensions.SqlServer.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath}} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.NuGetVersion }};SymbolPackageFormat=snupkg
+            dotnet pack src/FlowRules.Engine/FlowRules.Engine.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath }} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.NuGetVersion }};SymbolPackageFormat=snupkg            
+            dotnet pack src/FlowRules.Extensions.SqlServer/FlowRules.Extensions.SqlServer.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath }} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.NuGetVersion }};SymbolPackageFormat=snupkg
             echo "VERSION=${{ steps.gitversion.outputs.NuGetVersion }}" >> $GITHUB_ENV
-            ls ${{ env.NugetPackagePath}}/*
-            echo "${{ steps.gitversion.outputs.NuGetVersion }}" > ${{ env.NugetPackagePath}}/version.txt
+            ls ${{ env.NugetPackagePath }}/*
+            echo "${{ steps.gitversion.outputs.NuGetVersion }}" > ${{ env.NugetPackagePath }}/version.txt
 
     - name: Setup nuget.exe
       uses: nuget/setup-nuget@v1
