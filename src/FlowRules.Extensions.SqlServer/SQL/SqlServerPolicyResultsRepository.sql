@@ -15,7 +15,6 @@
 :setvar flowSchema flowrules
 :setvar flowUserName flowrulesuser
 :setvar flowDatabaseName flowEngine
-:setvar flowUserPassword test!23!XVCa
 
 IF NOT EXISTS(SELECT * FROM sys.databases WHERE name = '$(flowDatabaseName)')
 BEGIN

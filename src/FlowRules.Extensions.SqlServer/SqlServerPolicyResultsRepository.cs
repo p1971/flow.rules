@@ -22,6 +22,16 @@ namespace FlowRules.Extensions.SqlServer
         {
             _config = config.Value;
 
+            if (string.IsNullOrEmpty(_config.ConnectionString))
+            {
+                throw new InvalidOperationException($"[{nameof(_config.ConnectionString)}] is not set.");
+            }
+
+            if (string.IsNullOrEmpty(_config.SchemaName))
+            {
+                throw new InvalidOperationException($"[{nameof(_config.SchemaName)}] is not set.");
+            }
+            
             _sqlInsertFlowRulesRequest = @$"
                 INSERT INTO [{_config.SchemaName}].[FlowRulesRequest]
                     (FlowExecutionId, PolicyId, Request)
@@ -53,6 +63,7 @@ namespace FlowRules.Extensions.SqlServer
             using TransactionScope scope = new(TransactionScopeAsyncFlowOption.Enabled);
 
             using IDbConnection connection = new SqlConnection(_config.ConnectionString);
+
             connection.Open();
 
             int requestId = await connection.ExecuteScalarAsync<int>(_sqlInsertFlowRulesRequest, new

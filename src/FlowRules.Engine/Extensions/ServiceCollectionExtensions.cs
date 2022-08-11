@@ -26,13 +26,6 @@ namespace FlowRules.Engine.Extensions
 
             if (options.ResultsRepository != null)
             {
-                //    if (!options.ResultsRepository.GetInterfaces()
-                //            .Any(x =>
-                //                x.IsGenericType &&
-                //                x.GetGenericTypeDefinition() == (typeof(IPolicyResultsRepository<T>))))
-                //    {
-                //        throw new InvalidOperationException($"[{options.ResultsRepository.Name}] is not of type [{nameof(IPolicyResultsRepository<T>)}]");
-                //    }
                 services.TryAddSingleton(typeof(IPolicyResultsRepository<T>), options.ResultsRepository);
             }
             else
