@@ -42,6 +42,6 @@
     </PropertyGroup>
     <ItemGroup>
         <AdditionalFiles Include="$(MSBuildThisFileDirectory)..\stylecop.json" Link="stylecop.json" />
-        <None Include="docs\README.md" />
+        <None Include="docs\README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 </Project>
