@@ -58,7 +58,7 @@ namespace FlowRules.Extensions.SqlServer
             ";
         }
 
-        public async Task PersistResults(T request, PolicyExecutionResult result)
+        public async Task PersistResults(T request, PolicyExecutionResult policyExecutionResult)
         {
             using TransactionScope scope = new(TransactionScopeAsyncFlowOption.Enabled);
 
@@ -68,21 +68,21 @@ namespace FlowRules.Extensions.SqlServer
 
             int requestId = await connection.ExecuteScalarAsync<int>(_sqlInsertFlowRulesRequest, new
             {
-                FlowExecutionId = result.RuleContextId,
-                PolicyId = result.PolicyId,
+                FlowExecutionId = policyExecutionResult.RuleContextId,
+                PolicyId = policyExecutionResult.PolicyId,
                 Request = JsonSerializer.Serialize(request)
             });
 
             int policyResultId = await connection.ExecuteScalarAsync<int>(_sqlInsertFlowRulesPolicyResult, new
             {
                 FlowRulesRequest_Id = requestId,
-                PolicyName = result.PolicyName,
-                Passed = result.Passed,
-                Message = result.Message,
-                Version = result.Version
+                PolicyName = policyExecutionResult.PolicyName,
+                Passed = policyExecutionResult.Passed,
+                Message = policyExecutionResult.Message,
+                Version = policyExecutionResult.Version
             });
 
-            foreach (RuleExecutionResult? ruleResult in result.RuleExecutionResults)
+            foreach (RuleExecutionResult? ruleResult in policyExecutionResult.RuleExecutionResults)
             {
                 await connection.ExecuteAsync(_sqlInsertFlowRulesRuleResult, new
                 {

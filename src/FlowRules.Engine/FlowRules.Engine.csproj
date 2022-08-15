@@ -1,21 +1,45 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
-    <Authors>pete@madhippy.com</Authors>
-    <Company>madhippy.com</Company>
-    <Description>A simple rules engine implementation</Description>
-    <Product>FlowRules</Product>
-    <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <PackageProjectUrl>https://github.com/p1971/flow.rules.engine</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/p1971/flow.rules.engine</RepositoryUrl>
-    <RepositoryType>git</RepositoryType>
-    <PackageTags>rules</PackageTags>
-    <NeutralLanguage>en-GB</NeutralLanguage>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
-  </ItemGroup>
-
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <Authors>pete@madhippy.com</Authors>
+        <Company>madhippy.com</Company>
+        <Description>A simple rules engine implementation</Description>
+        <Product>FlowRules</Product>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageProjectUrl>https://github.com/p1971/flow.rules.engine</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/p1971/flow.rules.engine</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>rules</PackageTags>
+        <NeutralLanguage>en-GB</NeutralLanguage>
+    </PropertyGroup>
+    <PropertyGroup>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="6.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.1.1" PrivateAssets="All" />
+        <PackageReference Include="Microsoft.Build.Tasks.Git" Version="1.1.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Roslynator.Analyzers" Version="4.1.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.435">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+    <PropertyGroup>
+        <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)..\stylecop.ruleset</CodeAnalysisRuleSet>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
+    </PropertyGroup>
+    <ItemGroup>
+        <AdditionalFiles Include="$(MSBuildThisFileDirectory)..\stylecop.json" Link="stylecop.json" />
+    </ItemGroup>
 </Project>

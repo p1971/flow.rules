@@ -66,7 +66,7 @@ public static class PolicySetup
 
         return policy;
     }
-
+    
     private static Lookups GetLookups()
     {
         Lookups lookups = new(

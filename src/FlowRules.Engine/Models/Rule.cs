@@ -4,12 +4,21 @@ using System.Threading.Tasks;
 
 namespace FlowRules.Engine.Models
 {
-    public class Rule<T> where T : class
+    /// <summary>
+    /// Represents a rule that will be executed as part of the policy.
+    /// </summary>
+    /// <typeparam name="T">The type to execute against.</typeparam>
+    public class Rule<T>
+        where T : class
     {
-        public Rule()
-        {
-        }
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Rule{T}"/> class.
+        /// </summary>
+        /// <param name="id">The id of the rule.</param>
+        /// <param name="name">The name of the rule.</param>
+        /// <param name="description">The description of the rule.</param>
+        /// <param name="failureMessage">A function that creates a failure message based on the input request.</param>
+        /// <param name="source">The rule source.</param>
         public Rule(string id, string name, string description, Func<T, string> failureMessage, Func<T, CancellationToken, Task<bool>> source)
         {
             Id = id;
@@ -19,14 +28,29 @@ namespace FlowRules.Engine.Models
             Source = source;
         }
 
-        public string Id { get; init; }
+        /// <summary>
+        /// Gets the id of the rule.
+        /// </summary>
+        public string Id { get; }
 
-        public string Name { get; init; }
+        /// <summary>
+        /// Gets the name of the rule.
+        /// </summary>
+        public string Name { get; }
 
-        public string Description { get; init; }
+        /// <summary>
+        /// Gets the description of the rule.
+        /// </summary>
+        public string Description { get; }
 
-        public Func<T, string> FailureMessage { get; set; }
+        /// <summary>
+        /// Gets the function that returns a failure message for the rule.
+        /// </summary>
+        public Func<T, string> FailureMessage { get; }
 
-        public Func<T, CancellationToken, Task<bool>> Source { get; init; }
+        /// <summary>
+        /// Gets the source of the rule.
+        /// </summary>
+        public Func<T, CancellationToken, Task<bool>> Source { get; }
     }
 }
