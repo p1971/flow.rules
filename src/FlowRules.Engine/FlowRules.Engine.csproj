@@ -8,6 +8,7 @@
         <Product>FlowRules</Product>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
         <PackageProjectUrl>https://github.com/p1971/flow.rules.engine</PackageProjectUrl>
+        <PackageReadmeFile>readme.md</PackageReadmeFile>
         <RepositoryUrl>https://github.com/p1971/flow.rules.engine</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>rules</PackageTags>
@@ -41,5 +42,6 @@
     </PropertyGroup>
     <ItemGroup>
         <AdditionalFiles Include="$(MSBuildThisFileDirectory)..\stylecop.json" Link="stylecop.json" />
+        <None Include="docs\readme.md" />
     </ItemGroup>
 </Project>

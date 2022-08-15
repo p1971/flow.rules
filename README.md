@@ -11,7 +11,7 @@ A simple rules implementation for dotnet.
 
 ## Testing
 
-[![codecov](https://codecov.io/gh/p1971/flow.rules/branch/develop/graph/badge.svg?token=WEFAEQe92g)](https://codecov.io/gh/p1971/flow.rules)
+[![codecov](https://codecov.io/gh/p1971/flow.rules/branch/develop/graph/badge.svg?token=WEFAEQe92g)](https://codecov.io/gh/p1971/flow.rules.engine)
 
 ## Packaging
 
@@ -21,13 +21,12 @@ Release and symbol packages are available on [nuget.org](https://nuget.org).
 
 | Nuget | Description | Nuget |
 | ------| ------- | ------ |
-| FlowRules.Engine | Core engine | [![nuget](https://img.shields.io/nuget/v/FlowRules.svg)](https://www.nuget.org/packages/FlowRules) |
-| FlowRules.WebApi | Adds a webapi controller for executing flows | [![nuget](https://img.shields.io/nuget/v/FlowRules.WebApi.svg)](https://www.nuget.org/packages/FlowRules.WebApi) |
+| FlowRules.Engine | Core engine | [![nuget](https://img.shields.io/nuget/v/FlowRules.Engine.svg)](https://www.nuget.org/packages/FlowRules.Engine) |
 | FlowRules.Extensions.SqlServer | Sql server support | [![nuget](https://img.shields.io/nuget/v/FlowRules.Extensions.SqlServer.svg)](https://www.nuget.org/packages/FlowRules.Extensions.SqlServer) |
 
 ## Getting started
 
-### A simple dto to apply rules to.
+### A simple dto to apply rules against
 
 ```csharp
 public record MortgageApplication(int ApplicantAge, string MortgageType, int LoanAmount);
