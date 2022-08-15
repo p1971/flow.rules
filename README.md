@@ -4,8 +4,10 @@ A simple rules implementation for dotnet.
 
 ## CI
 
-![master](https://github.com/p1971/flow.rules/workflows/flowrules_build/badge.svg?branch=master) 
-![develop](https://github.com/p1971/flow.rules/workflows/flowrules_build/badge.svg?branch=develop) |
+
+| Project | Build (master) |  Build (develop) |
+|---------|-------|-------|
+| [FlowRules](https://github.com/p1971/flow.rules.engine) | ![master](https://github.com/p1971/flow.rules.engine/workflows/flowrules_build/badge.svg?branch=master) |  ![develop](https://github.com/p1971/flow.rules.engine/workflows/flowrules_build/badge.svg?branch=develop) |
 
 ## Testing
 

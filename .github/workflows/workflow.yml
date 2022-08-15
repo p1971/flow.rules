@@ -64,12 +64,11 @@ jobs:
 
     - name: nuget packaging
       run: |
-            dotnet pack src/FlowRules.Engine/FlowRules.Engine.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath}} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.NuGetVersion }};SymbolPackageFormat=snupkg
-            dotnet pack src/FlowRules.WebApi/FlowRules.WebApi.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath}} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.NuGetVersion }};SymbolPackageFormat=snupkg            
-            dotnet pack src/FlowRules.Extensions.SqlServer/FlowRules.Extensions.SqlServer.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath}} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.NuGetVersion }};SymbolPackageFormat=snupkg
+            dotnet pack src/FlowRules.Engine/FlowRules.Engine.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath }} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.NuGetVersion }};SymbolPackageFormat=snupkg            
+            dotnet pack src/FlowRules.Extensions.SqlServer/FlowRules.Extensions.SqlServer.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath }} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.NuGetVersion }};SymbolPackageFormat=snupkg
             echo "VERSION=${{ steps.gitversion.outputs.NuGetVersion }}" >> $GITHUB_ENV
-            ls ${{ env.NugetPackagePath}}/*
-            echo "${{ steps.gitversion.outputs.NuGetVersion }}" > ${{ env.NugetPackagePath}}/version.txt
+            ls ${{ env.NugetPackagePath }}/*
+            echo "${{ steps.gitversion.outputs.NuGetVersion }}" > ${{ env.NugetPackagePath }}/version.txt
 
     - name: Setup nuget.exe
       uses: nuget/setup-nuget@v1
@@ -108,14 +107,14 @@ jobs:
       - name: setup nuget config
         run: |
           nuget source Add -Name "GitHub" -Source "https://nuget.pkg.github.com/p1971/index.json"
-          nuget setApiKey ${{secrets.GH_NUGET_API_KEY}} -Source "https://nuget.pkg.github.com/p1971/index.json"
+          nuget setApiKey ${{secrets.GITHUB_TOKEN}} -Source "https://nuget.pkg.github.com/p1971/index.json"
 
       - name: Push generated package to GitHub registry
         if: contains(github.ref, 'develop') || contains(github.ref, 'releases')
         run: |
           for f in ./nuget_packages/*.nupkg
           do
-              nuget push $f -Source "https://nuget.pkg.github.com/p1971/index.json" -SkipDuplicate -ApiKey ${{secrets.GH_NUGET_API_KEY}}
+              nuget push $f -Source "https://nuget.pkg.github.com/p1971/index.json" -SkipDuplicate -ApiKey ${{secrets.GITHUB_TOKEN}}
           done
         shell: bash
 

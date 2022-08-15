@@ -1,23 +1,25 @@
 ﻿using FlowRules.Engine.Extensions;
 using FlowRules.Engine.Interfaces;
-using FlowRules.Engine.Models;
 using FlowRules.Extensions.SqlServer;
 using FlowRules.Samples.TestPolicy;
+
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Options;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.AddSingleton(Options.Create(new SqlServerPolicyResultsRepositoryConfig
-{
-    ConnectionString = " Server=sharon;Initial Catalog=flowengine;User Id=sa;Password=lnSjN7INewyShvT;TrustServerCertificate=True"
-}));
+
+#if SQLSERVER
+builder.Services
+    .AddOptions<SqlServerPolicyResultsRepositoryConfig>()
+    .Bind(builder.Configuration.GetSection(nameof(SqlServerPolicyResultsRepositoryConfig)));
+#endif
 
 builder.Services.AddFlowRules<MortgageApplication>(PolicySetup.GetPolicy, (c) =>
 {
+#if SQLSERVER
     c.ResultsRepository = typeof(SqlServerPolicyResultsRepository<MortgageApplication>);
+#endif
 });
 
 WebApplication app = builder.Build();
@@ -27,16 +29,7 @@ app.MapPost("/_execute", async (
     [FromServices] IPolicyManager<MortgageApplication> policyManager,
     CancellationToken cancellationToken) =>
 {
-    PolicyExecutionResult? result = await policyManager.Execute(Guid.NewGuid(), mortgageApplication, cancellationToken);
-    return result;
+    return await policyManager.Execute(Guid.NewGuid(), mortgageApplication, cancellationToken);
 });
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.UseHttpsRedirection();
 
 app.Run();
