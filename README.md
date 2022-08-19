@@ -8,11 +8,11 @@ A simple rules implementation for dotnet. Intended for use within a microservice
 
 | Project | Build (master) |  Build (develop) |
 |---------|-------|-------|
-| [FlowRules](https://github.com/p1971/flow.rules.engine) | ![master](https://github.com/p1971/flow.rules.engine/workflows/flowrules_build/badge.svg?branch=master) |  ![develop](https://github.com/p1971/flow.rules.engine/workflows/flowrules_build/badge.svg?branch=develop) |
+| [FlowRules](https://github.com/p1971/flow.rules) | ![master](https://github.com/p1971/flow.rules/workflows/flowrules_build/badge.svg?branch=master) |  ![develop](https://github.com/p1971/flow.rules/workflows/flowrules_build/badge.svg?branch=develop) |
 
 ## Testing
 
-[![codecov](https://codecov.io/gh/p1971/flow.rules/branch/develop/graph/badge.svg?token=WEFAEQe92g)](https://codecov.io/gh/p1971/flow.rules.engine)
+[![codecov](https://codecov.io/gh/p1971/flow.rules/branch/develop/graph/badge.svg?token=WEFAEQe92g)](https://codecov.io/gh/p1971/flow.rules)
 
 ## Packaging
 
