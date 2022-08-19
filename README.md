@@ -6,9 +6,9 @@ A simple rules implementation for dotnet. Intended for use within a microservice
 
 ## CI
 
-| Project | Build (master) |  Build (develop) |
+| Project | Build (main) |  Build (develop) |
 |---------|-------|-------|
-| [FlowRules](https://github.com/p1971/flow.rules) | ![master](https://github.com/p1971/flow.rules/workflows/flowrules_build/badge.svg?branch=master) |  ![develop](https://github.com/p1971/flow.rules/workflows/flowrules_build/badge.svg?branch=develop) |
+| [FlowRules](https://github.com/p1971/flow.rules.engine) | ![master](https://github.com/p1971/flow.rules.engine/workflows/flowrules_build/badge.svg?branch=master) |  ![develop](https://github.com/p1971/flow.rules.engine/workflows/flowrules_build/badge.svg?branch=develop) |
 
 ## Testing
 
