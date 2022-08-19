@@ -7,9 +7,9 @@
         <Description>A simple rules engine implementation</Description>
         <Product>FlowRules</Product>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <PackageProjectUrl>https://github.com/p1971/flow.rules.engine</PackageProjectUrl>
+        <PackageProjectUrl>https://github.com/p1971/flow.rules</PackageProjectUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
-        <RepositoryUrl>https://github.com/p1971/flow.rules.engine</RepositoryUrl>
+        <RepositoryUrl>https://github.com/p1971/flow.rules</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>rules</PackageTags>
         <NeutralLanguage>en-GB</NeutralLanguage>
