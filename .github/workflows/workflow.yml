@@ -39,8 +39,16 @@ jobs:
       run: dotnet build src/FlowRules.sln --configuration ${{ env.BuildConfiguration }} /p:Version=${{ steps.gitversion.outputs.AssemblySemVer }};AssemblyFileVersion=${{ steps.gitversion.outputs.AssemblySemVer }};AssemblyVersion=${{ steps.gitversion.outputs.AssemblySemVer }};AssemblyInformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }}
 
     - name: dotnet test 
-      run: dotnet test src --filter Category!=Extension --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=opencover --configuration ${{ env.BuildConfiguration }} 
-      
+      run: dotnet test src --logger:"trx;LogFileName=TestResults.xml" --filter Category!=Extension --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=opencover --configuration ${{ env.BuildConfiguration }} 
+
+    - name: Test Report
+      uses: dorny/test-reporter@v1
+      if: success() || failure()
+      with:
+        name: Tests            
+        path: ./**/TestResults.xml 
+        reporter: dotnet-trx       
+
     - name: Publish coverage report to codecov.io (UNIT)
       uses: codecov/codecov-action@v2
       with:
