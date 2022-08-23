@@ -71,13 +71,12 @@ namespace FlowRules.Samples.Console
 
         private static void LogResults(PolicyExecutionResult results, ILogger<MortgageApplication> logger)
         {
-            logger.LogInformation("[{RuleContextId}]  [{PolicyId}]:[{PolicyName}:{Version}] - {Passed} {Message}",
+            logger.LogInformation("[{RuleContextId}] [{PolicyId}]:[{PolicyName}:{Version}] - {Passed}",
                 results.RuleContextId,
                 results.PolicyId,
                 results.PolicyName,
                 results.Version,
-                results.Passed,
-                results.Message ?? string.Empty);
+                results.Passed);
 
             if (results.RuleExecutionResults.Length > 0)
             {

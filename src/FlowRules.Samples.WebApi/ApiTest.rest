@@ -1,0 +1,9 @@
+### 
+POST http://localhost:5014/_execute
+Content-Type: application/json
+
+{
+    "ApplicantAge": 30,
+    "MortgageType": "FTB",
+    "LoanAmount": 50000
+}

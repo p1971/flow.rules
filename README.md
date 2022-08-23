@@ -82,6 +82,27 @@ flowchart TD;
 
 ## Getting started
 
+### FlowRules concepts
+
+A policy is a collection of rules.
+
+| Name           | Description                                 | Example             |
+| -------------- | ------------------------------------------- | ------------------- |
+| Id             | A unique identifier for the policy.         | P0001               |
+| Name           | A human readable name for the policy.       | BasicDecisionPolicy |
+| Description    | A description for the policy.               | Basic checks.       |
+| Rules          | The list of rules belonging to the policy.  |                     |
+
+A rule is an assertion which must be true to pass.
+
+| Name           | Description                                                   | Example     |
+| -------------- | ------------------------------------------------------------- | ----------- |
+| Id             | A unique identifier for the rule.                             | R0001       |
+| Name           | A human readable name for the rule.                           | ValidateAge |
+| Description    | A description for the rule.                                   | Checks the applicants age.            |
+| FailureMessage | A function that returns a failure message, if the rule fails. The request data is passed to the function. | ```(r) => $"{r.Name} is too young."```             |
+| Source         | The actual rule code to execute, the request data and a cancellation token are passed.                              | ```(r, c) => r.Age > 21```            |
+
 ### A simple dto to apply rules against
 
 ```csharp
@@ -103,8 +124,13 @@ public class PolicyBuilder
         (r) => $"The {nameof(r.MortgageType)} [{r.MortgageType}] is not known.",
         (request, token) =>
         {
-            ColumnResolver mortgageType = lookup["Default"][request.MortgageType];
-            return Task.FromResult(mortgageType != null);
+            switch(request.MortgageType)
+            {
+                case "FTB":
+                    return Task.FromResult(true);
+                default: 
+                    return Task.FromResult(false);
+            }
         });
 
     Rule<MortgageApplication> ageLimitRule = new(
@@ -114,7 +140,7 @@ public class PolicyBuilder
         (r) => $"The {nameof(r.ApplicantAge)} [{r.ApplicantAge}] is too young.",
         (request, token) =>
         {
-            int minAgeForMortgage = lookup["Default"][request.MortgageType]["MinApplicantAge"].As<int>();
+            int minAgeForMortgage = 21;
             return Task.FromResult(request.ApplicantAge >= minAgeForMortgage);
         });
 
@@ -148,6 +174,27 @@ CancellationTokenSource cancellationTokenSource = new();
 CancellationToken cancellationToken = cancellationTokenSource.Token;
 
 PolicyExecutionResult results = await policyManager.Execute(Guid.NewGuid(), testMortgage, cancellationToken);
+```
+
+### Monitoring performance
+
+Counters are provided for the execution time of the policy and invidual rules.
+
+For example:
+
+```bash
+dotnet counters monitor --name FlowRules.Samples.WebApi --counters FlowRules
+```
+
+example response:
+
+```bash
+[FlowRules]
+    P001 (ms)                                          100
+    P001:MA001 (ms)                                     20
+    P001:MA002 (ms)                                     30
+    P001:MA003 (ms)                                     40
+    P001:MA004 (ms)                                     50
 ```
 
 ## Authors

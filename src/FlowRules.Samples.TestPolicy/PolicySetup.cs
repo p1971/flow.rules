@@ -13,10 +13,11 @@ public static class PolicySetup
             "KnownMortgageType",
             "Checks the mortgage type",
             (r) => $"The {nameof(r.MortgageType)} [{r.MortgageType}] is not known.",
-            (request, token) =>
+            async (request, token) =>
             {
+                await Task.Delay(100, token);
                 ColumnResolver mortgageType = lookup["Default"][request.MortgageType];
-                return Task.FromResult(mortgageType != null);
+                return mortgageType != null;
             });
 
         Rule<MortgageApplication> ageLimitRule = new(
@@ -24,10 +25,11 @@ public static class PolicySetup
             "MinAgeCheck",
             "Minimum age of the applicant",
             (r) => $"The {nameof(r.ApplicantAge)} [{r.ApplicantAge}] is too young.",
-            (request, token) =>
+            async (request, token) =>
             {
+                await Task.Delay(50, token);
                 int minAgeForMortgage = lookup["Default"][request.MortgageType]["MinApplicantAge"].As<int>();
-                return Task.FromResult(request.ApplicantAge >= minAgeForMortgage);
+                return request.ApplicantAge >= minAgeForMortgage;
             });
 
         Rule<MortgageApplication> minLoanAmountRule = new(
@@ -35,10 +37,11 @@ public static class PolicySetup
             "MinLoanAmount",
             "minimum loan amount check",
             (r) => $"The {nameof(r.LoanAmount)} [{r.LoanAmount}] is too small.",
-            (request, token) =>
+            async (request, token) =>
             {
+                await Task.Delay(20, token);
                 int minLoanAmount = lookup["Default"][request.MortgageType]["MinLoan"].As<int>();
-                return Task.FromResult(request.LoanAmount >= minLoanAmount);
+                return request.LoanAmount >= minLoanAmount;
             });
 
         Rule<MortgageApplication> maxLoanAmountRule = new(
@@ -46,16 +49,18 @@ public static class PolicySetup
             "MaxLoanAmount",
             "Maximum loan amount check",
             (r) => $"The {nameof(r.LoanAmount)} [{r.LoanAmount}] is too large.",
-            (request, token) =>
+            async (request, token) =>
             {
+                await Task.Delay(20, token);
                 int maxLoanAmount = lookup["Default"][request.MortgageType]["MaxLoan"].As<int>();
-                return Task.FromResult(request.LoanAmount <= maxLoanAmount);
+                return request.LoanAmount <= maxLoanAmount;
             });
 
         Policy<MortgageApplication> policy =
             new(
                 "P001",
                 "LoanPolicy",
+                "Simple loan policy",
                 new List<Rule<MortgageApplication>>
                 {
                     validMortgageTypeRule,
@@ -66,7 +71,7 @@ public static class PolicySetup
 
         return policy;
     }
-    
+
     private static Lookups GetLookups()
     {
         Lookups lookups = new(
