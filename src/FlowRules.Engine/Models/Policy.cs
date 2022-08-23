@@ -13,9 +13,10 @@ namespace FlowRules.Engine.Models
         /// Initializes a new instance of the <see cref="Policy{T}"/> class.
         /// </summary>
         /// <param name="id">The id of the policy.</param>
-        /// <param name="name">The name of hte policy.</param>
+        /// <param name="name">The name of the policy.</param>
+        /// <param name="description">The description of the policy.</param>
         /// <param name="rules">The rules for the policy.</param>
-        public Policy(string id, string name, IList<Rule<T>> rules)
+        public Policy(string id, string name, string description, IList<Rule<T>> rules)
         {
             Id = id;
             Name = name;
@@ -31,6 +32,11 @@ namespace FlowRules.Engine.Models
         /// Gets the name of the policy.
         /// </summary>
         public string Name { get; }
+
+        /// <summary>
+        /// Gets the description of the policy.
+        /// </summary>
+        public string Description { get; }
 
         /// <summary>
         /// Gets the rules of the policy.

@@ -43,9 +43,9 @@ namespace FlowRules.Extensions.SqlServer
 
             _sqlInsertFlowRulesPolicyResult = $@"
                 INSERT INTO [{_config.SchemaName}].[FlowRulesPolicyResult]
-                    (FlowRulesRequest_Id, PolicyName, Passed, Message, Version)  
+                    (FlowRulesRequest_Id, PolicyName, Passed, Version)  
                 VALUES 
-                    (@FlowRulesRequest_Id, @PolicyName, @Passed, @Message, @Version)  
+                    (@FlowRulesRequest_Id, @PolicyName, @Passed, @Version)  
 
                 SELECT SCOPE_IDENTITY()
             ";
@@ -78,7 +78,6 @@ namespace FlowRules.Extensions.SqlServer
                 FlowRulesRequest_Id = requestId,
                 PolicyName = policyExecutionResult.PolicyName,
                 Passed = policyExecutionResult.Passed,
-                Message = policyExecutionResult.Message,
                 Version = policyExecutionResult.Version
             });
 

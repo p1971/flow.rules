@@ -84,7 +84,6 @@ CREATE TABLE [$(flowSchema)].[FlowRulesPolicyResult]
     [FlowRulesRequest_Id] INT NOT NULL,
     [PolicyName] NVARCHAR(250) NOT NULL, 
     [Passed] BIT NOT NULL, 
-    [Message] NVARCHAR(MAX) NULL,
     [Version] VARCHAR(10) NULL,
     [CreatedAt] DATETIME2 CONSTRAINT DF_FlowRulesPolicyResult_CreatedAt DEFAULT SYSUTCDATETIME(),
     CONSTRAINT [PK_FlowRulesPolicyResult] PRIMARY KEY CLUSTERED ([Id]),

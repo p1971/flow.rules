@@ -42,6 +42,8 @@ namespace FlowRules.Engine
                 _policy.Name,
                 executionContextId);
 
+            Stopwatch stopwatch = Stopwatch.StartNew();
+
             IList<RuleExecutionResult> response = await Execute(_policy, executionContextId, request, cancellationToken);
 
             PolicyExecutionResult policyExecutionResult =
@@ -55,7 +57,13 @@ namespace FlowRules.Engine
                     Passed = response.All(r => r.Passed)
                 };
 
-            await TryPersistResults(request, policyExecutionResult);
+            stopwatch.Stop();
+
+#pragma warning disable CS4014
+            Task.Run(() => TryPersistResults(request, policyExecutionResult), cancellationToken);
+#pragma warning restore CS4014
+
+            FlowRulesEventCounterSource.EventSource.PolicyExecution(_policy.Id, stopwatch.ElapsedMilliseconds);
 
             return policyExecutionResult;
         }
@@ -70,8 +78,9 @@ namespace FlowRules.Engine
             {
                 _logger.LogError(
                     ex,
-                    "An exception occurred writing the results to the [{repositoryTypeName}]",
-                    _resultsRepository.GetType().FullName);
+                    "An exception occurred writing the results to the [{repositoryTypeName}] for [{ruleContextId}]",
+                    _resultsRepository.GetType().Name,
+                    policyExecutionResult.RuleContextId);
             }
         }
 
@@ -118,6 +127,7 @@ namespace FlowRules.Engine
             {
                 stopwatch.Stop();
                 result.Elapsed = stopwatch.Elapsed;
+                FlowRulesEventCounterSource.EventSource.RuleExecution(_policy.Id, rule.Id, stopwatch.ElapsedMilliseconds);
             }
 
             return result;

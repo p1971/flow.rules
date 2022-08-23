@@ -23,11 +23,6 @@ namespace FlowRules.Engine.Models
         public bool Passed { get; init; }
 
         /// <summary>
-        /// Gets or sets a value for a message associated with the policy result.
-        /// </summary>
-        public string Message { get; set; }
-
-        /// <summary>
         /// Gets the individual rule execution results.
         /// </summary>
         public RuleExecutionResult[] RuleExecutionResults { get; init; }

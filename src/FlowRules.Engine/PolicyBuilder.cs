@@ -18,6 +18,7 @@ namespace FlowRules.Engine
 
         private string _id;
         private string _name;
+        private string _description;
 
         /// <summary>
         /// Sets the Id of the policy.
@@ -38,6 +39,17 @@ namespace FlowRules.Engine
         public PolicyBuilder<T> WithName(string name)
         {
             _name = name;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the description of the policy.
+        /// </summary>
+        /// <param name="description">The description of the policy.</param>
+        /// <returns>The current instance of the <see cref="PolicyBuilder{T}"/>.</returns>
+        public PolicyBuilder<T> WithDescription(string description)
+        {
+            _description = description;
             return this;
         }
 
@@ -73,7 +85,7 @@ namespace FlowRules.Engine
         /// <returns>An instance of the <see cref="Policy{T}"/>.</returns>
         public Policy<T> Build()
         {
-            return new Policy<T>(_id, _name, _rules);
+            return new Policy<T>(_id, _name, _description, _rules);
         }
     }
 }
