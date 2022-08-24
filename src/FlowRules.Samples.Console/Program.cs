@@ -37,7 +37,7 @@ namespace FlowRules.Samples.Console
             CancellationTokenSource cancellationTokenSource = new();
             CancellationToken cancellationToken = cancellationTokenSource.Token;
 
-            PolicyExecutionResult results = await policyManager.Execute(Guid.NewGuid(), testMortgage, cancellationToken);
+            PolicyExecutionResult results = await policyManager.Execute(Guid.NewGuid().ToString(), Guid.NewGuid(), testMortgage, cancellationToken);
 
             ILogger<MortgageApplication> logger = serviceProvider.GetService<ILogger<MortgageApplication>>();
 
@@ -71,13 +71,12 @@ namespace FlowRules.Samples.Console
 
         private static void LogResults(PolicyExecutionResult results, ILogger<MortgageApplication> logger)
         {
-            logger.LogInformation("[{RuleContextId}]  [{PolicyId}]:[{PolicyName}:{Version}] - {Passed} {Message}",
+            logger.LogInformation("[{RuleContextId}] [{PolicyId}]:[{PolicyName}:{Version}] - {Passed}",
                 results.RuleContextId,
                 results.PolicyId,
                 results.PolicyName,
                 results.Version,
-                results.Passed,
-                results.Message ?? string.Empty);
+                results.Passed);
 
             if (results.RuleExecutionResults.Length > 0)
             {

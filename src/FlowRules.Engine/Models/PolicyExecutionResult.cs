@@ -23,11 +23,6 @@ namespace FlowRules.Engine.Models
         public bool Passed { get; init; }
 
         /// <summary>
-        /// Gets or sets a value for a message associated with the policy result.
-        /// </summary>
-        public string Message { get; set; }
-
-        /// <summary>
         /// Gets the individual rule execution results.
         /// </summary>
         public RuleExecutionResult[] RuleExecutionResults { get; init; }
@@ -36,6 +31,11 @@ namespace FlowRules.Engine.Models
         /// Gets the rule execution context id.
         /// </summary>
         public Guid RuleContextId { get; init; }
+
+        /// <summary>
+        /// Gets the correlation id to track requests from callers.
+        /// </summary>
+        public string CorrelationId { get; init; }
 
         /// <summary>
         /// Gets the version of the rules policy.
