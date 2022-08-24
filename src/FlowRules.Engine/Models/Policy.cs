@@ -20,6 +20,7 @@ namespace FlowRules.Engine.Models
         {
             Id = id;
             Name = name;
+            Description = description;
             Rules = rules;
         }
 

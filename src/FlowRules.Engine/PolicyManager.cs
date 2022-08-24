@@ -34,7 +34,11 @@ namespace FlowRules.Engine
         }
 
         /// <inheritdoc />
-        public async Task<PolicyExecutionResult> Execute(Guid executionContextId, T request, CancellationToken cancellationToken)
+        public async Task<PolicyExecutionResult> Execute(
+            string correlationId,
+            Guid executionContextId,
+            T request,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation(
                 "Executing [{policyId}]:[{policyName}] for [{executionContextId}]",
@@ -50,6 +54,7 @@ namespace FlowRules.Engine
                 new()
                 {
                     RuleContextId = executionContextId,
+                    CorrelationId = correlationId,
                     PolicyId = _policy.Id,
                     PolicyName = _policy.Name,
                     Version = _policy.GetType().Assembly.GetName().Version?.ToString(4),

@@ -146,7 +146,7 @@ namespace FlowRules.Engine.UnitTests
             CancellationToken cancellationToken = cancellationTokenSource.Token;
 
             PolicyExecutionResult response
-                = await policyManager.Execute(Guid.NewGuid(), personDataModel, cancellationToken);
+                = await policyManager.Execute(Guid.NewGuid().ToString(), Guid.NewGuid(), personDataModel, cancellationToken);
 
             Assert.NotNull(response);
             Assert.Single(response.RuleExecutionResults);
@@ -166,7 +166,7 @@ namespace FlowRules.Engine.UnitTests
             CancellationToken cancellationToken = cancellationTokenSource.Token;
 
             PolicyExecutionResult response
-                = await policyManager.Execute(Guid.NewGuid(), personDataModel, cancellationToken);
+                = await policyManager.Execute(Guid.NewGuid().ToString(), Guid.NewGuid(), personDataModel, cancellationToken);
 
             return response;
         }

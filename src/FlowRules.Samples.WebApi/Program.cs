@@ -27,9 +27,11 @@ WebApplication app = builder.Build();
 app.MapPost("/_execute", async (
     [FromBody] MortgageApplication mortgageApplication,
     [FromServices] IPolicyManager<MortgageApplication> policyManager,
+    [FromHeader(Name = "X-Correlation-Id")] string? correlationIdHeader,
     CancellationToken cancellationToken) =>
 {
-    return await policyManager.Execute(Guid.NewGuid(), mortgageApplication, cancellationToken);
+    string correlationId = correlationIdHeader ?? Guid.NewGuid().ToString();
+    return await policyManager.Execute(correlationId, Guid.NewGuid(), mortgageApplication, cancellationToken);
 });
 
 app.Run();

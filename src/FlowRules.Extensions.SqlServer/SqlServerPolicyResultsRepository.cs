@@ -34,9 +34,9 @@ namespace FlowRules.Extensions.SqlServer
             
             _sqlInsertFlowRulesRequest = @$"
                 INSERT INTO [{_config.SchemaName}].[FlowRulesRequest]
-                    (FlowExecutionId, PolicyId, Request)
+                    (FlowExecutionId, CorrelationId, PolicyId, Request)
                 VALUES
-                    (@FlowExecutionId, @PolicyId, @Request)
+                    (@FlowExecutionId, @CorrelationId, @PolicyId, @Request)
 
                 SELECT SCOPE_IDENTITY()
             ";
@@ -52,9 +52,9 @@ namespace FlowRules.Extensions.SqlServer
 
             _sqlInsertFlowRulesRuleResult = $@"
                 INSERT INTO [{_config.SchemaName}].[FlowRulesRuleResult]
-                    (FlowRulesPolicyResult_Id, RuleId, RuleName, Passed, Message, Elapsed, Exception)
+                    (FlowRulesPolicyResult_Id, RuleId, RuleName, RuleDescription, Passed, Message, Elapsed, Exception)
                 VALUES
-                    (@FlowRulesPolicyResult_Id, @RuleId, @RuleName, @Passed, @Message, @Elapsed, @Exception)
+                    (@FlowRulesPolicyResult_Id, @RuleId, @RuleName, @RuleDescription, @Passed, @Message, @Elapsed, @Exception)
             ";
         }
 
@@ -69,6 +69,7 @@ namespace FlowRules.Extensions.SqlServer
             int requestId = await connection.ExecuteScalarAsync<int>(_sqlInsertFlowRulesRequest, new
             {
                 FlowExecutionId = policyExecutionResult.RuleContextId,
+                CorrelationId = policyExecutionResult.CorrelationId,
                 PolicyId = policyExecutionResult.PolicyId,
                 Request = JsonSerializer.Serialize(request)
             });
@@ -88,7 +89,7 @@ namespace FlowRules.Extensions.SqlServer
                     FlowRulesPolicyResult_Id = policyResultId,
                     RuleId = ruleResult.Id,
                     RuleName = ruleResult.Name,
-                    RuleDescripton = ruleResult.Description,
+                    RuleDescription = ruleResult.Description,
                     Passed = ruleResult.Passed,
                     Message = ruleResult.Message,
                     Elapsed = ruleResult.Elapsed,

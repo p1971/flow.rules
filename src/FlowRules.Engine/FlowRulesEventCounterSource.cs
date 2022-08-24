@@ -32,7 +32,7 @@ namespace FlowRules.Engine
             if (IsEnabled())
             {
                 string key = $"{policyId}";
-                var cnter = _counters.GetOrAdd(key, (key) =>
+                EventCounter cnter = _counters.GetOrAdd(key, (key) =>
                     new EventCounter(key, this)
                     {
                         DisplayName = $"{key}",
@@ -46,6 +46,7 @@ namespace FlowRules.Engine
         /// <summary>
         /// Writes and event counter to indicate how long the policy took to execute.
         /// </summary>
+        /// <param name="policyId">The id of the policy.</param>
         /// <param name="ruleId">The id of the rule.</param>
         /// <param name="elapsedMilliseconds">The time taken to execute the policy in milliseconds.</param>
         [Event(2, Level = EventLevel.Informational)]
@@ -54,7 +55,7 @@ namespace FlowRules.Engine
             if (IsEnabled())
             {
                 string key = $"{policyId}:{ruleId}";
-                var cnter = _counters.GetOrAdd(key, (key) =>
+                EventCounter cnter = _counters.GetOrAdd(key, (key) =>
                     new EventCounter(key, this)
                     {
                         DisplayName = $"{key}",

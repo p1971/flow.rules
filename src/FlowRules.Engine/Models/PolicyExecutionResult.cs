@@ -33,6 +33,11 @@ namespace FlowRules.Engine.Models
         public Guid RuleContextId { get; init; }
 
         /// <summary>
+        /// Gets the correlation id to track requests from callers.
+        /// </summary>
+        public string CorrelationId { get; init; }
+
+        /// <summary>
         /// Gets the version of the rules policy.
         /// </summary>
         public string Version { get; init; }

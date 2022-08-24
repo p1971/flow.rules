@@ -37,7 +37,7 @@ namespace FlowRules.Samples.Console
             CancellationTokenSource cancellationTokenSource = new();
             CancellationToken cancellationToken = cancellationTokenSource.Token;
 
-            PolicyExecutionResult results = await policyManager.Execute(Guid.NewGuid(), testMortgage, cancellationToken);
+            PolicyExecutionResult results = await policyManager.Execute(Guid.NewGuid().ToString(), Guid.NewGuid(), testMortgage, cancellationToken);
 
             ILogger<MortgageApplication> logger = serviceProvider.GetService<ILogger<MortgageApplication>>();
 
