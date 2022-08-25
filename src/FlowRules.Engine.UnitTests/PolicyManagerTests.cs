@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Reflection.PortableExecutable;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -30,6 +29,7 @@ namespace FlowRules.Engine.UnitTests
             Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Instance
                 .WithId("P001")
                 .WithName("test policy")
+                .WithDescription("policy description")
                 .WithRule("R001", "test rule", (model, token) => Task.FromResult(true), description: "test description")
                 .Build();
 
@@ -38,6 +38,11 @@ namespace FlowRules.Engine.UnitTests
             PolicyExecutionResult response = await ExecutePolicy(policy, personDataModel);
 
             Assert.NotNull(response);
+
+            Assert.Equal(GetType().Assembly.GetName().Version?.ToString(4), response.Version);
+            Assert.NotEmpty(response.CorrelationId);
+            Assert.True(response.Passed);
+
             Assert.Single(response.RuleExecutionResults);
             Assert.Equal("P001", response.PolicyId);
             Assert.Equal("test policy", response.PolicyName);
@@ -46,6 +51,8 @@ namespace FlowRules.Engine.UnitTests
             Assert.Equal("R001", response.RuleExecutionResults[0].Id);
             Assert.Equal("test rule", response.RuleExecutionResults[0].Name);
             Assert.Equal("test description", response.RuleExecutionResults[0].Description);
+            Assert.Null(response.RuleExecutionResults[0].Exception);
+            Assert.True(response.RuleExecutionResults[0].Elapsed > TimeSpan.Zero);
         }
 
         [Fact]
