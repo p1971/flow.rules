@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 using FlowRules.Engine.Extensions;
 using FlowRules.Engine.Interfaces;
@@ -28,17 +29,12 @@ namespace FlowRules.Engine.UnitTests
         public async Task AddFlowRules_Should_Add_Default_ResultsRepository()
         {
             Policy<PersonDataModel> policy = GetTestPolicy();
-            
+
             _subject.AddFlowRules<PersonDataModel>(() => policy);
 
             ServiceProvider serviceProvider = _subject.BuildServiceProvider();
 
-            Assert.NotNull(serviceProvider.GetService<Policy<PersonDataModel>>());
-
-            Assert.NotNull(serviceProvider.GetService<IPolicyResultsRepository<PersonDataModel>>());
-            Assert.Equal(typeof(DefaultPolicyResultsRepository<PersonDataModel>), serviceProvider.GetService<IPolicyResultsRepository<PersonDataModel>>().GetType());
-
-            Assert.NotNull(serviceProvider.GetService<IPolicyManager<PersonDataModel>>());
+            AssertResults(typeof(DefaultPolicyResultsRepository<PersonDataModel>), serviceProvider);
         }
 
         [Fact]
@@ -52,10 +48,15 @@ namespace FlowRules.Engine.UnitTests
 
             ServiceProvider serviceProvider = _subject.BuildServiceProvider();
 
+            AssertResults(mockResultsRepository.Object.GetType(), serviceProvider);
+        }
+
+        private static void AssertResults(Type resultsRepositoryType, ServiceProvider serviceProvider)
+        {
             Assert.NotNull(serviceProvider.GetService<Policy<PersonDataModel>>());
 
             Assert.NotNull(serviceProvider.GetService<IPolicyResultsRepository<PersonDataModel>>());
-            Assert.Equal(mockResultsRepository.Object.GetType(), serviceProvider.GetService<IPolicyResultsRepository<PersonDataModel>>().GetType());
+            Assert.Equal(resultsRepositoryType, serviceProvider.GetService<IPolicyResultsRepository<PersonDataModel>>().GetType());
 
             Assert.NotNull(serviceProvider.GetService<IPolicyManager<PersonDataModel>>());
         }
