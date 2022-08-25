@@ -1,10 +1,8 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-
 using FlowRules.Engine.Interfaces;
 using FlowRules.Engine.Models;
-
 using Microsoft.Extensions.Logging;
 
 using Moq;
