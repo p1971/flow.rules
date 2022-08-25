@@ -11,7 +11,7 @@ namespace FlowRules.Engine.UnitTests
         private readonly PolicyBuilder<PersonDataModel> _subject = new();
 
         [Fact]
-        public async Task Build_Should_Map_AllProperties()
+        public void Build_Should_Map_AllProperties()
         {
             Policy<PersonDataModel> policy = _subject
                 .WithId("T001")

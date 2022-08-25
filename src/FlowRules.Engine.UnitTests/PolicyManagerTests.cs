@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+
 using FlowRules.Engine.Interfaces;
 using FlowRules.Engine.Models;
+
 using Microsoft.Extensions.Logging;
 
 using Moq;
@@ -157,6 +159,61 @@ namespace FlowRules.Engine.UnitTests
             Assert.Single(response.RuleExecutionResults);
             Assert.True(response.RuleExecutionResults[0].Passed);
 
+        }
+
+        [Fact]
+        public async Task Execute_Should_Execute_Single_Rule()
+        {
+            Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Instance
+                .WithId("P001")
+                .WithName("test policy")
+                .WithDescription("policy description")
+                .WithRule("R001", "test rule", (model, token) => Task.FromResult(true))
+                .WithRule("R002", "second rule", (model, token) => Task.FromResult(false))
+                .Build();
+
+            PersonDataModel personDataModel = new("Test User", new DateOnly(2000, 01, 01));
+
+            PolicyManager<PersonDataModel> policyManager = new(policy, new DefaultPolicyResultsRepository<PersonDataModel>(), _logger);
+
+            CancellationTokenSource cancellationTokenSource = new();
+            CancellationToken cancellationToken = cancellationTokenSource.Token;
+
+            RuleExecutionResult response
+                = await policyManager.Execute("R001", Guid.NewGuid().ToString(), Guid.NewGuid(), personDataModel, cancellationToken);
+            Assert.Equal("R001", response.Id);
+
+            response
+                = await policyManager.Execute("R002", Guid.NewGuid().ToString(), Guid.NewGuid(), personDataModel, cancellationToken);
+            Assert.Equal("R002", response.Id);
+        }
+
+        [Fact]
+        public async Task Execute_Should_Throw_For_Missing_Rule()
+        {
+            Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Instance
+                .WithId("P001")
+                .WithName("test policy")
+                .WithDescription("policy description")
+                .WithRule("R001", "test rule", (model, token) => Task.FromResult(true))
+                .Build();
+
+            PersonDataModel personDataModel = new("Test User", new DateOnly(2000, 01, 01));
+
+            PolicyManager<PersonDataModel> policyManager = new(policy, new DefaultPolicyResultsRepository<PersonDataModel>(), _logger);
+
+            CancellationTokenSource cancellationTokenSource = new();
+            CancellationToken cancellationToken = cancellationTokenSource.Token;
+
+            await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            {
+                await policyManager.Execute(
+                    "XXXX",
+                    Guid.NewGuid().ToString(),
+                    Guid.NewGuid(),
+                    personDataModel,
+                    cancellationToken);
+            });
         }
 
         private async Task<PolicyExecutionResult> ExecutePolicy(Policy<PersonDataModel> policy, PersonDataModel personDataModel, int? timeoutInMilliseconds = null)

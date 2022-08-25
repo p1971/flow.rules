@@ -26,7 +26,7 @@ namespace FlowRules.Engine.UnitTests
         }
 
         [Fact]
-        public async Task AddFlowRules_Should_Add_Default_ResultsRepository()
+        public void AddFlowRules_Should_Add_Default_ResultsRepository()
         {
             Policy<PersonDataModel> policy = GetTestPolicy();
 
@@ -38,7 +38,7 @@ namespace FlowRules.Engine.UnitTests
         }
 
         [Fact]
-        public async Task AddFlowRules_Should_Add_Custom_ResultsRepository()
+        public void AddFlowRules_Should_Add_Custom_ResultsRepository()
         {
             Policy<PersonDataModel> policy = GetTestPolicy();
 
