@@ -6,9 +6,14 @@ namespace FlowRules.Engine
     /// <summary>
     /// Provides dotnet counters for the FlowRules.
     /// </summary>
-    [EventSource(Name = "FlowRules")]
+    [EventSource(Name = FlowRulesEventCounterSource.EventSourceName)]
     public sealed class FlowRulesEventCounterSource : EventSource
     {
+        /// <summary>
+        /// The name of the event source.
+        /// </summary>
+        public const string EventSourceName = "FlowRules";
+
         /// <summary>
         /// Static instance of the <see cref="FlowRulesEventCounterSource"/>.
         /// </summary>
@@ -64,20 +69,6 @@ namespace FlowRules.Engine
 
                 cnter.WriteMetric(elapsedMilliseconds);
             }
-        }
-
-        /// <inheritdoc />
-        protected override void Dispose(bool disposing)
-        {
-            if (_counters != null)
-            {
-                foreach (string key in _counters.Keys)
-                {
-                    _counters[key].Dispose();
-                }
-            }
-
-            base.Dispose(disposing);
         }
     }
 }
