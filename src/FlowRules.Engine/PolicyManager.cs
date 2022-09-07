@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -73,6 +74,29 @@ namespace FlowRules.Engine
             return policyExecutionResult;
         }
 
+        /// <inheritdoc />
+        public async Task<RuleExecutionResult> Execute(
+            string ruleId,
+            string correlationId,
+            Guid executionContextId,
+            T request,
+            CancellationToken cancellationToken)
+        {
+            _logger.LogInformation(
+                "Executing [{ruleId}] for [{executionContextId}]",
+                ruleId,
+                executionContextId);
+
+            Rule<T> rule = _policy.Rules.FirstOrDefault(r => r.Id == ruleId);
+
+            if (rule == null)
+            {
+                throw new InvalidOperationException($"No rule with id [{ruleId}] was found.");
+            }
+
+            return await ExecuteRule(rule, executionContextId, request, cancellationToken);
+        }
+
         private async Task TryPersistResults(T request, PolicyExecutionResult policyExecutionResult)
         {
             try
@@ -105,7 +129,11 @@ namespace FlowRules.Engine
             return ruleExecutionResults;
         }
 
-        private async Task<RuleExecutionResult> ExecuteRule(Rule<T> rule, Guid executionContextId, T request, CancellationToken cancellationToken)
+        private async Task<RuleExecutionResult> ExecuteRule(
+            Rule<T> rule,
+            Guid executionContextId,
+            T request,
+            CancellationToken cancellationToken)
         {
             _logger.LogInformation("... executing [{policyId}]:[{policyName}] for [{executionContextId}]", rule.Id, rule.Name, executionContextId);
 

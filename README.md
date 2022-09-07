@@ -1,6 +1,6 @@
 # flow rules ![MIT](https://badgen.net/badge/license/MIT/green)
 
-**WORK IN PROGRESS**
+## WORK IN PROGRESS
 
 A simple rules implementation for dotnet. Intended for use within a microservice implementation.
 
@@ -112,7 +112,6 @@ public record MortgageApplication(int ApplicantAge, string MortgageType, int Loa
 ### The rules policy
 
 ```csharp
-
 public class PolicyBuilder 
 {
     public Policy<MortgageApplication> GetPolicy()
@@ -175,6 +174,34 @@ CancellationToken cancellationToken = cancellationTokenSource.Token;
 
 PolicyExecutionResult results = await policyManager.Execute(Guid.NewGuid(), testMortgage, cancellationToken);
 ```
+
+### Logging results
+
+Results are logged via the `IPolicyResultsRepository<in T>` implementation. The default implementation just logs to `ILogger<T>`.
+
+The interface is fairly simple:
+
+```csharp
+Task PersistResults(T request, PolicyExecutionResult policyExecutionResult);
+```
+
+Where `PolicyExecutionResult` contains the policy and invidual rule results.
+
+`FlowRules.Extensions.SqlServer` contains an implementation that writes the results to SQL Server.
+
+The [SqlServerPolicyResultsRepository.sql](https://github.com/p1971/flow.rules/blob/develop/src/FlowRules.Extensions.SqlServer/SQL/SqlServerPolicyResultsRepository.sql) can be used to create the database / schema required.
+
+In order to use the SQL Server implementation, it can be registered when registering the FlowRules.
+
+```csharp
+builder.Services.AddFlowRules<MortgageApplication>(PolicySetup.GetPolicy, (c) =>
+{
+    c.ResultsRepository = typeof(SqlServerPolicyResultsRepository<MortgageApplication>);
+});
+
+```
+
+Custom implementations can be registered similarly.
 
 ### Monitoring performance
 

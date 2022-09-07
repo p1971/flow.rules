@@ -34,16 +34,16 @@ namespace FlowRules.Engine.Extensions
             Policy<T> policy = policyAction();
             services.AddSingleton(policy);
 
-            services.AddSingleton<IPolicyManager<T>, PolicyManager<T>>();
-
             if (options.ResultsRepository != null)
             {
                 services.TryAddSingleton(typeof(IPolicyResultsRepository<T>), options.ResultsRepository);
             }
             else
             {
-                services.TryAddSingleton(typeof(DefaultPolicyResultsRepository<T>));
+                services.TryAddSingleton(typeof(IPolicyResultsRepository<T>), typeof(DefaultPolicyResultsRepository<T>));
             }
+
+            services.AddSingleton<IPolicyManager<T>, PolicyManager<T>>();
 
             return services;
         }
