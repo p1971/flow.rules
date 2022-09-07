@@ -17,7 +17,7 @@ namespace FlowRules.Engine.UnitTests
         public FlowRulesEventCounterSourceTests(ITestOutputHelper testOutputHelper)
         {
             _testOutputHelper = testOutputHelper;
-            _testEventListener = new TestEventListener(testOutputHelper, _collector);
+            _testEventListener = new TestEventListener(_testOutputHelper, _collector);
         }
 
         [Fact]
