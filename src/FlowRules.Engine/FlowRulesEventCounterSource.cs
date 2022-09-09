@@ -37,14 +37,14 @@ namespace FlowRules.Engine
             if (IsEnabled())
             {
                 string key = $"{policyId}";
-                EventCounter cnter = _counters.GetOrAdd(key, (key) =>
+                EventCounter counter = _counters.GetOrAdd(key, (key) =>
                     new EventCounter(key, this)
                     {
                         DisplayName = $"{key}",
                         DisplayUnits = "ms"
                     });
 
-                cnter.WriteMetric(elapsedMilliseconds);
+                counter.WriteMetric(elapsedMilliseconds);
             }
         }
 
@@ -60,14 +60,14 @@ namespace FlowRules.Engine
             if (IsEnabled())
             {
                 string key = $"{policyId}:{ruleId}";
-                EventCounter cnter = _counters.GetOrAdd(key, (key) =>
+                EventCounter counter = _counters.GetOrAdd(key, (key) =>
                     new EventCounter(key, this)
                     {
                         DisplayName = $"{key}",
                         DisplayUnits = "ms"
                     });
 
-                cnter.WriteMetric(elapsedMilliseconds);
+                counter.WriteMetric(elapsedMilliseconds);
             }
         }
     }

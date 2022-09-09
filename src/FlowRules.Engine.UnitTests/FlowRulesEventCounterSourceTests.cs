@@ -11,89 +11,69 @@ namespace FlowRules.Engine.UnitTests
     public class FlowRulesEventCounterSourceTests
     {
         private readonly ITestOutputHelper _testOutputHelper;
-        private readonly TestEventListenerCollector _collector = new();
-        private readonly TestEventListener _testEventListener;
+        private readonly TestEventListener _testEventListener = new();
+        private readonly FlowRulesEventCounterSource _subject = FlowRulesEventCounterSource.EventSource;
 
         public FlowRulesEventCounterSourceTests(ITestOutputHelper testOutputHelper)
         {
             _testOutputHelper = testOutputHelper;
-            _testEventListener = new TestEventListener(_testOutputHelper, _collector);
         }
 
         [Fact]
         public async Task FlowRulesEventCounterSource_PolicyExecution_Should_EmitEvent()
         {
-            _testOutputHelper.WriteLine($"{nameof(FlowRulesEventCounterSource_PolicyExecution_Should_EmitEvent)} - writing event.");
+            _testOutputHelper.WriteLine($"{nameof(FlowRulesEventCounterSource_PolicyExecution_Should_EmitEvent)} - writing events.");
 
-            FlowRulesEventCounterSource subject = FlowRulesEventCounterSource.EventSource;
+            Assert.True(_subject.IsEnabled());
 
-            subject.PolicyExecution("P001", 100);
-            subject.PolicyExecution("P001", 200);
-            subject.RuleExecution("P001", "R001", 40);
-            subject.RuleExecution("P001", "R002", 50);
+            _subject.PolicyExecution("P001", 100);
+            _subject.PolicyExecution("P001", 200);
+            _subject.RuleExecution("P001", "R001", 40);
+            _subject.RuleExecution("P001", "R002", 50);
 
             await Task.Delay(2000);
 
-            if (_collector.EventArgs.Count == 0)
+            if (_testEventListener.EventArgs.Count == 0)
             {
                 Assert.Fail("No events were found.");
             }
 
-            (string key, string value) policyEvents = _collector.EventArgs.FirstOrDefault(a => a.key == "P001");
+            (string key, string value) policyEvents = _testEventListener.EventArgs.FirstOrDefault(a => a.key == "P001");
             Assert.NotNull(policyEvents.key);
 
-            (string key, string value) ruleEvents = _collector.EventArgs.FirstOrDefault(a => a.key == "P001:R001");
+            (string key, string value) ruleEvents = _testEventListener.EventArgs.FirstOrDefault(a => a.key == "P001:R001");
             Assert.NotNull(ruleEvents.key);
 
             _testEventListener.DisableEvents(new EventSource(FlowRulesEventCounterSource.EventSourceName));
         }
-
-        private class TestEventListenerCollector
-        {
-            public void Add(string key, string value)
-            {
-                EventArgs.Add((key, value));
-            }
-
-            public IList<(string key, string value)> EventArgs { get; set; } = new List<(string, string)>();
-        }
-
+        
         private class TestEventListener : EventListener
         {
-            private readonly ITestOutputHelper _testOutputHelper;
-            private readonly TestEventListenerCollector _eventListenerCollector;
-
-            public TestEventListener(ITestOutputHelper testOutputHelper, TestEventListenerCollector eventListenerCollector)
-            {
-                _testOutputHelper = testOutputHelper;
-                _eventListenerCollector = eventListenerCollector;
-                _testOutputHelper.WriteLine($"Created {nameof(TestEventListener)}");
-            }
+            public IList<(string key, string value)> EventArgs { get; set; } = new List<(string, string)>();
 
             protected override void OnEventSourceCreated(EventSource eventSource)
             {
                 if (eventSource.Name == FlowRulesEventCounterSource.EventSourceName)
                 {
-                    _testOutputHelper.WriteLine($"Listening to event source: [{eventSource.Name}]");
                     EnableEvents(eventSource, EventLevel.LogAlways, EventKeywords.All, new Dictionary<string, string>()
                     {
                         ["EventCounterIntervalSec"] = "1"
                     });
                 }
             }
-
+            
             protected override void OnEventWritten(EventWrittenEventArgs eventData)
             {
-                _testOutputHelper.WriteLine($"{eventData.EventSource.Name}");
-
-                for (int i = 0; i < eventData.Payload.Count; ++i)
+                if (eventData.Payload != null)
                 {
-                    if (eventData.Payload[i] is IDictionary<string, object> eventPayload)
+                    for (int i = 0; i < eventData.Payload.Count; ++i)
                     {
-                        var (counterName, counterValue) = GetRelevantMetric(eventPayload);
-                        _eventListenerCollector.Add(counterName, counterValue);
+                        if (eventData.Payload[i] is IDictionary<string, object> eventPayload)
+                        {
+                            var (counterName, counterValue) = GetRelevantMetric(eventPayload);
 
-                        _testOutputHelper.WriteLine($"{counterName} : {counterValue}");
+                            EventArgs.Add(new(counterName, counterValue));
+                        }
                     }
                 }
             }

@@ -185,7 +185,7 @@ The interface is fairly simple:
 Task PersistResults(T request, PolicyExecutionResult policyExecutionResult);
 ```
 
-Where `PolicyExecutionResult` contains the policy and invidual rule results.
+Where `PolicyExecutionResult` contains the policy and individual rule results.
 
 `FlowRules.Extensions.SqlServer` contains an implementation that writes the results to SQL Server.
 
