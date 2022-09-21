@@ -7,7 +7,7 @@ namespace FlowRules.Engine;
 /// Provides dotnet counters for the FlowRules.
 /// </summary>
 [EventSource(Name = FlowRulesEventCounterSource.EventSourceName)]
-public sealed class FlowRulesEventCounterSource : EventSource
+internal sealed class FlowRulesEventCounterSource : EventSource
 {
     /// <summary>
     /// The name of the event source.
