@@ -13,77 +13,76 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace FlowRules.Samples.Console
+namespace FlowRules.Samples.Console;
+
+public static class Program
 {
-    public static class Program
+    public static async Task Main(string[] args)
     {
-        public static async Task Main(string[] args)
-        {
-            using IHost host = Host.CreateDefaultBuilder(args).Build();
+        using IHost host = Host.CreateDefaultBuilder(args).Build();
 
-            IConfiguration config = new ConfigurationBuilder()
-                .AddUserSecrets(typeof(Program).Assembly)
-                .AddEnvironmentVariables()
-                .Build();
+        IConfiguration config = new ConfigurationBuilder()
+            .AddUserSecrets(typeof(Program).Assembly)
+            .AddEnvironmentVariables()
+            .Build();
 
-            ServiceCollection serviceCollection = GetServiceCollection(config);
+        ServiceCollection serviceCollection = GetServiceCollection(config);
 
-            ServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
+        ServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
-            IPolicyManager<MortgageApplication> policyManager = serviceProvider.GetService<IPolicyManager<MortgageApplication>>();
+        IPolicyManager<MortgageApplication> policyManager = serviceProvider.GetService<IPolicyManager<MortgageApplication>>();
 
-            MortgageApplication testMortgage = new(21, "FTB", 200_000);
+        MortgageApplication testMortgage = new(21, "FTB", 200_000);
 
-            CancellationTokenSource cancellationTokenSource = new();
-            CancellationToken cancellationToken = cancellationTokenSource.Token;
+        CancellationTokenSource cancellationTokenSource = new();
+        CancellationToken cancellationToken = cancellationTokenSource.Token;
 
-            PolicyExecutionResult results = await policyManager.Execute(Guid.NewGuid().ToString(), Guid.NewGuid(), testMortgage, cancellationToken);
+        PolicyExecutionResult results = await policyManager.Execute(Guid.NewGuid().ToString(), Guid.NewGuid(), testMortgage, cancellationToken);
 
-            ILogger<MortgageApplication> logger = serviceProvider.GetService<ILogger<MortgageApplication>>();
+        ILogger<MortgageApplication> logger = serviceProvider.GetService<ILogger<MortgageApplication>>();
 
-            LogResults(results, logger);
+        LogResults(results, logger);
 
-            await host.StartAsync(cancellationToken);
+        await host.StartAsync(cancellationToken);
 
-            serviceProvider.Dispose();
-        }
+        serviceProvider.Dispose();
+    }
 
-        private static ServiceCollection GetServiceCollection(IConfiguration config)
-        {
-            ServiceCollection serviceCollection = new();
+    private static ServiceCollection GetServiceCollection(IConfiguration config)
+    {
+        ServiceCollection serviceCollection = new();
 
-            serviceCollection.AddLogging(opt => { opt.AddConsole(); });
+        serviceCollection.AddLogging(opt => { opt.AddConsole(); });
 
 #if SQLSERVER
-            serviceCollection
-                .AddOptions<SqlServerPolicyResultsRepositoryConfig>()
-                .Bind(config.GetSection(nameof(SqlServerPolicyResultsRepositoryConfig)));
+        serviceCollection
+            .AddOptions<SqlServerPolicyResultsRepositoryConfig>()
+            .Bind(config.GetSection(nameof(SqlServerPolicyResultsRepositoryConfig)));
 #endif
 
-            serviceCollection.AddFlowRules<MortgageApplication>(() => PolicySetup.GetPolicy(), c =>
-            {
-#if SQLSERVER
-                c.ResultsRepository = typeof(SqlServerPolicyResultsRepository<MortgageApplication>);
-#endif
-            });
-            return serviceCollection;
-        }
-
-        private static void LogResults(PolicyExecutionResult results, ILogger<MortgageApplication> logger)
+        serviceCollection.AddFlowRules<MortgageApplication>(() => PolicySetup.GetPolicy(), c =>
         {
-            logger.LogInformation("[{RuleContextId}] [{PolicyId}]:[{PolicyName}:{Version}] - {Passed}",
-                results.RuleContextId,
-                results.PolicyId,
-                results.PolicyName,
-                results.Version,
-                results.Passed);
+#if SQLSERVER
+            c.ResultsRepository = typeof(SqlServerPolicyResultsRepository<MortgageApplication>);
+#endif
+        });
+        return serviceCollection;
+    }
 
-            if (results.RuleExecutionResults.Length > 0)
+    private static void LogResults(PolicyExecutionResult results, ILogger<MortgageApplication> logger)
+    {
+        logger.LogInformation("[{RuleContextId}] [{PolicyId}]:[{PolicyName}:{Version}] - {Passed}",
+            results.RuleContextId,
+            results.PolicyId,
+            results.PolicyName,
+            results.Version,
+            results.Passed);
+
+        if (results.RuleExecutionResults.Length > 0)
+        {
+            foreach (RuleExecutionResult result in results.RuleExecutionResults)
             {
-                foreach (RuleExecutionResult result in results.RuleExecutionResults)
-                {
-                    logger.LogInformation("[{Id}]:[{Name}] - {Passed} {Message} ({Elapsed}ms)", result.Id, result.Name, result.Passed, result.Message ?? string.Empty, result.Elapsed);
-                }
+                logger.LogInformation("[{Id}]:[{Name}] - {Passed} {Message} ({Elapsed}ms)", result.Id, result.Name, result.Passed, result.Message ?? string.Empty, result.Elapsed);
             }
         }
     }

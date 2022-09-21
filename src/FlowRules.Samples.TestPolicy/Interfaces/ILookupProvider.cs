@@ -1,7 +1,6 @@
-﻿namespace FlowRules.Samples.TestPolicy.Interfaces
+﻿namespace FlowRules.Samples.TestPolicy.Interfaces;
+
+public interface ILookupProvider
 {
-    public interface ILookupProvider
-    {
-        Lookups GetLookups();
-    }
+    Lookups GetLookups();
 }

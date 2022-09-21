@@ -1,30 +1,29 @@
 ﻿using System.Collections.Concurrent;
 
-namespace FlowRules.Samples.TestPolicy
-{
-    public class ColumnResolver
-    {
-        private readonly IDictionary<string, object?> _dictionary =
-            new ConcurrentDictionary<string, object?>();
+namespace FlowRules.Samples.TestPolicy;
 
-        public ValueResolver this[string name]
+public class ColumnResolver
+{
+    private readonly IDictionary<string, object?> _dictionary =
+        new ConcurrentDictionary<string, object?>();
+
+    public ValueResolver this[string name]
+    {
+        get
         {
-            get
+            if (!_dictionary.ContainsKey(name))
             {
-                if (!_dictionary.ContainsKey(name))
-                {
-                    _dictionary.Add(name, null);
-                }
-                return new ValueResolver(_dictionary[name]);
+                _dictionary.Add(name, null);
             }
-            set
+            return new ValueResolver(_dictionary[name]);
+        }
+        set
+        {
+            if (_dictionary.ContainsKey(name))
             {
-                if (_dictionary.ContainsKey(name))
-                {
-                    _dictionary[name] = value;
-                }
-                _dictionary.Add(name, value);
+                _dictionary[name] = value;
             }
+            _dictionary.Add(name, value);
         }
     }
 }

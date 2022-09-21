@@ -1,19 +1,18 @@
 ﻿using FlowRules.Samples.TestPolicy.Interfaces;
 
-namespace FlowRules.Samples.TestPolicy
+namespace FlowRules.Samples.TestPolicy;
+
+public class LookupProvider : ILookupProvider
 {
-    public class LookupProvider : ILookupProvider
+    private readonly Lookups _lookups;
+
+    public LookupProvider(Lookups lookups)
     {
-        private readonly Lookups _lookups;
+        _lookups = lookups;
+    }
 
-        public LookupProvider(Lookups lookups)
-        {
-            _lookups = lookups;
-        }
-
-        public Lookups GetLookups()
-        {
-            return _lookups;
-        }
+    public Lookups GetLookups()
+    {
+        return _lookups;
     }
 }
