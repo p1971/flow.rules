@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,13 +20,21 @@ public class Rule<T>
     /// <param name="description">The description of the rule.</param>
     /// <param name="failureMessage">A function that creates a failure message based on the input request.</param>
     /// <param name="source">The rule source.</param>
-    public Rule(string id, string name, string description, Func<T, string> failureMessage, Func<T, CancellationToken, Task<bool>> source)
+    /// <param name="code">The text for the rule source.</param>
+    public Rule(
+        string id,
+        string name,
+        string description,
+        Func<T, string> failureMessage,
+        Func<T, CancellationToken, Task<bool>> source,
+        [CallerArgumentExpression("source")] string code = null)
     {
         Id = id;
         Name = name;
         Description = description;
         FailureMessage = failureMessage;
         Source = source;
+        Code = code;
     }
 
     /// <summary>
@@ -52,4 +61,9 @@ public class Rule<T>
     /// Gets the source of the rule.
     /// </summary>
     public Func<T, CancellationToken, Task<bool>> Source { get; }
+
+    /// <summary>
+    /// Gets the text of the rule to be executed.
+    /// </summary>
+    public string Code { get; }
 }

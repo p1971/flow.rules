@@ -11,6 +11,7 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Divergic.Logging.Xunit" Version="4.2.0" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="6.0.0" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.3.0" />
         <PackageReference Include="Moq" Version="4.18.2" />
         <PackageReference Include="xunit" Version="2.4.2" />
@@ -19,9 +20,13 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
     </ItemGroup>
-
+    <PropertyGroup>
+        <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)..\stylecop.test.ruleset</CodeAnalysisRuleSet>
+    </PropertyGroup>
     <ItemGroup>
         <ProjectReference Include="..\FlowRules.Engine\FlowRules.Engine.csproj" />
     </ItemGroup>
-
+    <ItemGroup>
+        <AdditionalFiles Include="$(MSBuildThisFileDirectory)..\stylecop.test.json" Link="stylecop.test.json" />
+    </ItemGroup>
 </Project>

@@ -14,10 +14,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		directory.build.props = directory.build.props
 		GitVersion.yml = GitVersion.yml
 		..\README.md = ..\README.md
-		stylecop.json = stylecop.json
-		stylecop.ruleset = stylecop.ruleset
-		stylecop.test.json = stylecop.test.json
-		stylecop.test.ruleset = stylecop.test.ruleset
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlowRules.Samples.TestPolicy", "FlowRules.Samples.TestPolicy\FlowRules.Samples.TestPolicy.csproj", "{B8DE12E3-2B00-4C35-B06F-0A95F2CBAE3C}"
@@ -38,6 +34,14 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlowRules.Samples.WebApi", "FlowRules.Samples.WebApi\FlowRules.Samples.WebApi.csproj", "{69B0D02A-82FC-4C61-9B36-837E4504F455}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{C0A207B5-410F-47E6-8641-BE23549F1E36}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "stylecop", "stylecop", "{994E47DE-9C94-42B1-A577-1341DE6FF5E4}"
+	ProjectSection(SolutionItems) = preProject
+		stylecop.json = stylecop.json
+		stylecop.ruleset = stylecop.ruleset
+		stylecop.test.json = stylecop.test.json
+		stylecop.test.ruleset = stylecop.test.ruleset
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -130,6 +134,7 @@ Global
 		{6D80B6FE-97B0-40A6-8EFF-D26EA9AED093} = {C1098987-CE55-4DA0-BED0-D70979A9D174}
 		{38281596-205A-47E9-9785-24820A655454} = {C0A207B5-410F-47E6-8641-BE23549F1E36}
 		{69B0D02A-82FC-4C61-9B36-837E4504F455} = {C0A207B5-410F-47E6-8641-BE23549F1E36}
+		{994E47DE-9C94-42B1-A577-1341DE6FF5E4} = {C1098987-CE55-4DA0-BED0-D70979A9D174}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4CE44008-CAD2-4B5E-A380-D392E07F2274}

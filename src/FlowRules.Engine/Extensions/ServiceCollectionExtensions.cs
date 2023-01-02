@@ -43,6 +43,11 @@ public static class ServiceCollectionExtensions
             services.TryAddSingleton(typeof(IPolicyResultsRepository<T>), typeof(DefaultPolicyResultsRepository<T>));
         }
 
+        if (options.PolicyAuditRepository != null)
+        {
+            services.TryAddSingleton(typeof(IPolicyAuditRepository<T>), options.PolicyAuditRepository);
+        }
+
         services.AddSingleton<IPolicyManager<T>, PolicyManager<T>>();
 
         return services;

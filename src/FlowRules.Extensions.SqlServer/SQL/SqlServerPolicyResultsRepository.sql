@@ -1,4 +1,5 @@
-﻿-- This needs to be run in sqlcmd mode
+﻿
+-- This needs to be run in sqlcmd mode
 --
 -- You can either use an existing database or create a new one
 --
@@ -48,17 +49,23 @@ IF NOT EXISTS
      FROM sys.database_principals
      WHERE name = '$(flowUserName)')
 BEGIN
-    CREATE USER [$(flowUserName)] FOR LOGIN [$(flowUserName)] 
+    CREATE USER [$(flowUserName)] FOR LOGIN [$(flowUserName)] WITH DEFAULT_SCHEMA=[$(flowSchema)] 
 END
 GO
 
-DROP TABLE IF EXISTS [$(flowSchema)].[FlowRulesRuleResult]
+DROP TABLE IF EXISTS [$(flowSchema)].[Rule];
 GO
 
-DROP TABLE IF EXISTS [$(flowSchema)].[FlowRulesPolicyResult]
+DROP TABLE IF EXISTS [$(flowSchema)].[Policy];
 GO
 
-DROP TABLE IF EXISTS [$(flowSchema)].[FlowRulesRequest];
+DROP TABLE IF EXISTS [$(flowSchema)].[RuleResult]
+GO
+
+DROP TABLE IF EXISTS [$(flowSchema)].[PolicyResult]
+GO
+
+DROP TABLE IF EXISTS [$(flowSchema)].[Request];
 GO
 
 DROP SCHEMA IF EXISTS [$(flowSchema)]
@@ -67,35 +74,60 @@ GO
 CREATE SCHEMA [$(flowSchema)]
 GO
 
-CREATE TABLE [$(flowSchema)].[FlowRulesRequest]
+CREATE TABLE [$(flowSchema)].[Policy]
+(
+	[Id] INT IDENTITY(1,1) NOT NULL, 
+    [PolicyId] VARCHAR(20) NOT NULL,     
+    [PolicyVersion] VARCHAR(20) NOT NULL, 
+    [CreatedAt] DATETIME2 CONSTRAINT DF_Policy_CreatedAt DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT [PK_Policy] PRIMARY KEY CLUSTERED ([Id]),
+    CONSTRAINT [UQ_Policy_PolicyId_PolicyVersion] UNIQUE (PolicyId, PolicyVersion) 
+)
+GO
+
+CREATE TABLE [$(flowSchema)].[Rule]
+(
+	[Id] INT IDENTITY(1,1) NOT NULL, 
+    [Policy_Id] INT NOT NULL,     
+    [RuleId] VARCHAR(20) NOT NULL,         
+    [Name] VARCHAR(20) NOT NULL,         
+    [Source] VARCHAR(MAX) NOT NULL,         
+    [CreatedAt] DATETIME2 CONSTRAINT DF_Rule_CreatedAt DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT [PK_Rule] PRIMARY KEY CLUSTERED ([Id]),
+    CONSTRAINT [UQ_Rule_RuleId_Name] UNIQUE (RuleId, Policy_Id, Name),
+    CONSTRAINT [FK_Rule_Policy_Id] FOREIGN KEY (Policy_Id) REFERENCES [$(flowSchema)].[Policy]([Id])
+)
+GO
+
+CREATE TABLE [$(flowSchema)].[Request]
 (
 	[Id] INT IDENTITY(1,1) NOT NULL, 
     [FlowExecutionId] uniqueidentifier NOT NULL,     
     [CorrelationId] varchar(200) NOT NULL,     
     [PolicyId] VARCHAR(20) NOT NULL, 
     [Request] NVARCHAR(MAX) NOT NULL,    
-    [CreatedAt] DATETIME2 CONSTRAINT DF_FlowRulesRequest_CreatedAt DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT [PK_FlowRulesRequest] PRIMARY KEY CLUSTERED ([Id])
+    [CreatedAt] DATETIME2 CONSTRAINT DF_Request_CreatedAt DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT [PK_Request] PRIMARY KEY CLUSTERED ([Id])
 )
 GO
 
-CREATE TABLE [$(flowSchema)].[FlowRulesPolicyResult]
+CREATE TABLE [$(flowSchema)].[PolicyResult]
 (
 	[Id] INT IDENTITY(1,1) NOT NULL, 
-    [FlowRulesRequest_Id] INT NOT NULL,
+    [Request_Id] INT NOT NULL,
     [PolicyName] NVARCHAR(50) NOT NULL, 
     [Passed] BIT NOT NULL, 
     [Version] VARCHAR(20) NULL,
-    [CreatedAt] DATETIME2 CONSTRAINT DF_FlowRulesPolicyResult_CreatedAt DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT [PK_FlowRulesPolicyResult] PRIMARY KEY CLUSTERED ([Id]),
-    CONSTRAINT [FK_FlowRulesPolicyResult_FlowRulesRequest_Id] FOREIGN KEY (FlowRulesRequest_Id) REFERENCES [$(flowSchema)].[FlowRulesRequest]([Id])
+    [CreatedAt] DATETIME2 CONSTRAINT DF_PolicyResult_CreatedAt DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT [PK_PolicyResult] PRIMARY KEY CLUSTERED ([Id]),
+    CONSTRAINT [FK_PolicyResult_Request_Id] FOREIGN KEY (Request_Id) REFERENCES [$(flowSchema)].[Request]([Id])
 )
 GO
 
-CREATE TABLE [$(flowSchema)].[FlowRulesRuleResult]
+CREATE TABLE [$(flowSchema)].[RuleResult]
 (
 	[Id] INT IDENTITY(1,1) NOT NULL, 
-    [FlowRulesPolicyResult_Id] INT NOT NULL,
+    [PolicyResult_Id] INT NOT NULL,
     [RuleId] VARCHAR(20) NOT NULL,
     [RuleName] VARCHAR(50) NOT NULL,
     [RuleDescription] VARCHAR(250) NULL,
@@ -103,9 +135,9 @@ CREATE TABLE [$(flowSchema)].[FlowRulesRuleResult]
     [Message] NVARCHAR(MAX) NULL,
     [Elapsed] TIME NOT NULL,
     [Exception] NVARCHAR(MAX) NULL,
-    [CreatedAt] DATETIME2 CONSTRAINT DF_FlowRulesRuleResult_CreatedAt DEFAULT SYSUTCDATETIME(),
-    CONSTRAINT [PK_FlowRulesRuleResult] PRIMARY KEY CLUSTERED ([Id]),
-    CONSTRAINT [FK_FlowRulesRuleResult_FlowRulesPolicyResult] FOREIGN KEY ([FlowRulesPolicyResult_Id]) REFERENCES [$(flowSchema)].[FlowRulesPolicyResult]([Id])
+    [CreatedAt] DATETIME2 CONSTRAINT DF_RuleResult_CreatedAt DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT [PK_RuleResult] PRIMARY KEY CLUSTERED ([Id]),
+    CONSTRAINT [FK_RuleResult_PolicyResult] FOREIGN KEY ([PolicyResult_Id]) REFERENCES [$(flowSchema)].[PolicyResult]([Id])
 )
 GO
 

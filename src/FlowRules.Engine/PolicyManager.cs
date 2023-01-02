@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
@@ -65,9 +64,7 @@ public class PolicyManager<T> : IPolicyManager<T>
 
         stopwatch.Stop();
 
-#pragma warning disable CS4014
-        Task.Run(() => TryPersistResults(request, policyExecutionResult), cancellationToken);
-#pragma warning restore CS4014
+        await TryPersistResults(request, policyExecutionResult);
 
         FlowRulesEventCounterSource.EventSource.PolicyExecution(_policy.Id, stopwatch.ElapsedMilliseconds);
 
@@ -142,7 +139,7 @@ public class PolicyManager<T> : IPolicyManager<T>
         Stopwatch stopwatch = Stopwatch.StartNew();
         try
         {
-            bool passed = await rule.Source.Invoke(request, cancellationToken);
+            bool passed = await rule.Source(request, cancellationToken);
             result.Passed = passed;
             if (!passed && rule.FailureMessage != null)
             {

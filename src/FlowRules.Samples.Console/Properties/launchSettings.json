@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "FlowRules.Samples.Console": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "DOTNET_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

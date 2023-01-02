@@ -1,24 +1,34 @@
 ﻿using System.Data;
+using System.Reflection;
 using System.Text.Json;
 using System.Transactions;
+
 using Dapper;
+
 using FlowRules.Engine.Interfaces;
 using FlowRules.Engine.Models;
+
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
 
 namespace FlowRules.Extensions.SqlServer;
 
+/// <inheritdoc />
 public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
     where T : class
 {
-    private readonly SqlServerPolicyResultsRepositoryConfig _config;
+    private readonly SqlServerPolicyRepositoryConfig _config;
 
-    private readonly string _sqlInsertFlowRulesRequest;
-    private readonly string _sqlInsertFlowRulesPolicyResult;
-    private readonly string _sqlInsertFlowRulesRuleResult;
-
-    public SqlServerPolicyResultsRepository(IOptions<SqlServerPolicyResultsRepositoryConfig> config)
+    private readonly string _sqlInsertRequest;
+    private readonly string _sqlInsertPolicyResult;
+    private readonly string _sqlInsertRuleResult;
+    
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="config"></param>
+    /// <exception cref="InvalidOperationException"></exception>
+    public SqlServerPolicyResultsRepository(IOptions<SqlServerPolicyRepositoryConfig> config)
     {
         _config = config.Value;
 
@@ -31,9 +41,9 @@ public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
         {
             throw new InvalidOperationException($"[{nameof(_config.SchemaName)}] is not set.");
         }
-            
-        _sqlInsertFlowRulesRequest = @$"
-                INSERT INTO [{_config.SchemaName}].[FlowRulesRequest]
+
+        _sqlInsertRequest = @$"
+                INSERT INTO [{_config.SchemaName}].[Request]
                     (FlowExecutionId, CorrelationId, PolicyId, Request)
                 VALUES
                     (@FlowExecutionId, @CorrelationId, @PolicyId, @Request)
@@ -41,23 +51,24 @@ public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
                 SELECT SCOPE_IDENTITY()
             ";
 
-        _sqlInsertFlowRulesPolicyResult = $@"
-                INSERT INTO [{_config.SchemaName}].[FlowRulesPolicyResult]
-                    (FlowRulesRequest_Id, PolicyName, Passed, Version)  
+        _sqlInsertPolicyResult = $@"
+                INSERT INTO [{_config.SchemaName}].[PolicyResult]
+                    (Request_Id, PolicyName, Passed, Version)  
                 VALUES 
-                    (@FlowRulesRequest_Id, @PolicyName, @Passed, @Version)  
+                    (@Request_Id, @PolicyName, @Passed, @Version)  
 
                 SELECT SCOPE_IDENTITY()
             ";
 
-        _sqlInsertFlowRulesRuleResult = $@"
-                INSERT INTO [{_config.SchemaName}].[FlowRulesRuleResult]
-                    (FlowRulesPolicyResult_Id, RuleId, RuleName, RuleDescription, Passed, Message, Elapsed, Exception)
+        _sqlInsertRuleResult = $@"
+                INSERT INTO [{_config.SchemaName}].[RuleResult]
+                    (PolicyResult_Id, RuleId, RuleName, RuleDescription, Passed, Message, Elapsed, Exception)
                 VALUES
-                    (@FlowRulesPolicyResult_Id, @RuleId, @RuleName, @RuleDescription, @Passed, @Message, @Elapsed, @Exception)
+                    (@PolicyResult_Id, @RuleId, @RuleName, @RuleDescription, @Passed, @Message, @Elapsed, @Exception)
             ";
     }
 
+    /// <inheritdoc />
     public async Task PersistResults(T request, PolicyExecutionResult policyExecutionResult)
     {
         using TransactionScope scope = new(TransactionScopeAsyncFlowOption.Enabled);
@@ -66,7 +77,7 @@ public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
 
         connection.Open();
 
-        int requestId = await connection.ExecuteScalarAsync<int>(_sqlInsertFlowRulesRequest, new
+        int requestId = await connection.ExecuteScalarAsync<int>(_sqlInsertRequest, new
         {
             FlowExecutionId = policyExecutionResult.RuleContextId,
             CorrelationId = policyExecutionResult.CorrelationId,
@@ -74,9 +85,9 @@ public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
             Request = JsonSerializer.Serialize(request)
         });
 
-        int policyResultId = await connection.ExecuteScalarAsync<int>(_sqlInsertFlowRulesPolicyResult, new
+        int policyResultId = await connection.ExecuteScalarAsync<int>(_sqlInsertPolicyResult, new
         {
-            FlowRulesRequest_Id = requestId,
+            Request_Id = requestId,
             PolicyName = policyExecutionResult.PolicyName,
             Passed = policyExecutionResult.Passed,
             Version = policyExecutionResult.Version
@@ -84,9 +95,9 @@ public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
 
         foreach (RuleExecutionResult? ruleResult in policyExecutionResult.RuleExecutionResults)
         {
-            await connection.ExecuteAsync(_sqlInsertFlowRulesRuleResult, new
+            await connection.ExecuteAsync(_sqlInsertRuleResult, new
             {
-                FlowRulesPolicyResult_Id = policyResultId,
+                PolicyResult_Id = policyResultId,
                 RuleId = ruleResult.Id,
                 RuleName = ruleResult.Name,
                 RuleDescription = ruleResult.Description,

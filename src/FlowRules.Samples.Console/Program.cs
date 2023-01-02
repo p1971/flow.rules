@@ -1,6 +1,4 @@
-﻿using System;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 
 using FlowRules.Engine.Extensions;
 using FlowRules.Engine.Interfaces;
@@ -8,7 +6,6 @@ using FlowRules.Engine.Models;
 using FlowRules.Extensions.SqlServer;
 using FlowRules.Samples.TestPolicy;
 
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -19,71 +16,42 @@ public static class Program
 {
     public static async Task Main(string[] args)
     {
-        using IHost host = Host.CreateDefaultBuilder(args).Build();
+        Policy<MortgageApplication> policy = PolicySetup.GetPolicy();
 
-        IConfiguration config = new ConfigurationBuilder()
-            .AddUserSecrets(typeof(Program).Assembly)
-            .AddEnvironmentVariables()
+        using IHost host = Host.CreateDefaultBuilder(args)
+            .ConfigureServices(services =>
+            {
+                services.AddLogging(opt => { opt.AddConsole(); });
+
+#if SQLSERVER
+                services
+                    .AddOptions<SqlServerPolicyRepositoryConfig>()
+                    .BindConfiguration(nameof(SqlServerPolicyRepositoryConfig));
+#endif
+
+                services.AddFlowRules<MortgageApplication>(() => policy, c =>
+                {
+#if SQLSERVER
+                    c.ResultsRepository = typeof(SqlServerPolicyResultsRepository<MortgageApplication>);
+                    c.PolicyAuditRepository = typeof(SqlServerPolicyAuditRepository<MortgageApplication>);
+#endif
+                });
+
+                services.AddSingleton<RulesService>();
+
+            })
             .Build();
 
-        ServiceCollection serviceCollection = GetServiceCollection(config);
+        IPolicyAuditRepository<MortgageApplication> policyAuditRepository =
+            host.Services.GetService<IPolicyAuditRepository<MortgageApplication>>();
 
-        ServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
-
-        IPolicyManager<MortgageApplication> policyManager = serviceProvider.GetService<IPolicyManager<MortgageApplication>>();
-
-        MortgageApplication testMortgage = new(21, "FTB", 200_000);
-
-        CancellationTokenSource cancellationTokenSource = new();
-        CancellationToken cancellationToken = cancellationTokenSource.Token;
-
-        PolicyExecutionResult results = await policyManager.Execute(Guid.NewGuid().ToString(), Guid.NewGuid(), testMortgage, cancellationToken);
-
-        ILogger<MortgageApplication> logger = serviceProvider.GetService<ILogger<MortgageApplication>>();
-
-        LogResults(results, logger);
-
-        await host.StartAsync(cancellationToken);
-
-        serviceProvider.Dispose();
-    }
-
-    private static ServiceCollection GetServiceCollection(IConfiguration config)
-    {
-        ServiceCollection serviceCollection = new();
-
-        serviceCollection.AddLogging(opt => { opt.AddConsole(); });
-
-#if SQLSERVER
-        serviceCollection
-            .AddOptions<SqlServerPolicyResultsRepositoryConfig>()
-            .Bind(config.GetSection(nameof(SqlServerPolicyResultsRepositoryConfig)));
-#endif
-
-        serviceCollection.AddFlowRules<MortgageApplication>(() => PolicySetup.GetPolicy(), c =>
+        if (policyAuditRepository != null)
         {
-#if SQLSERVER
-            c.ResultsRepository = typeof(SqlServerPolicyResultsRepository<MortgageApplication>);
-#endif
-        });
-        return serviceCollection;
-    }
-
-    private static void LogResults(PolicyExecutionResult results, ILogger<MortgageApplication> logger)
-    {
-        logger.LogInformation("[{RuleContextId}] [{PolicyId}]:[{PolicyName}:{Version}] - {Passed}",
-            results.RuleContextId,
-            results.PolicyId,
-            results.PolicyName,
-            results.Version,
-            results.Passed);
-
-        if (results.RuleExecutionResults.Length > 0)
-        {
-            foreach (RuleExecutionResult result in results.RuleExecutionResults)
-            {
-                logger.LogInformation("[{Id}]:[{Name}] - {Passed} {Message} ({Elapsed}ms)", result.Id, result.Name, result.Passed, result.Message ?? string.Empty, result.Elapsed);
-            }
+            await policyAuditRepository.PersistPolicy(policy);
         }
+
+        RulesService rulesService = host.Services.GetRequiredService<RulesService>();
+
+        await rulesService.ExecuteAsync();
     }
 }

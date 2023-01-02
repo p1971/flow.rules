@@ -31,6 +31,7 @@ public class PolicyBuilderTests
         Assert.Equal("Rule", rule.Name);
         Assert.Equal("rule desc", rule.Description);
         Assert.NotNull(rule.Source);
+        Assert.NotNull(rule.Code);
         Assert.NotNull(rule.FailureMessage);
     }
 }

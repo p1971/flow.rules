@@ -11,8 +11,8 @@ builder.Services.AddEndpointsApiExplorer();
 
 #if SQLSERVER
 builder.Services
-    .AddOptions<SqlServerPolicyResultsRepositoryConfig>()
-    .Bind(builder.Configuration.GetSection(nameof(SqlServerPolicyResultsRepositoryConfig)));
+    .AddOptions<SqlServerPolicyRepositoryConfig>()
+    .Bind(builder.Configuration.GetSection(nameof(SqlServerPolicyRepositoryConfig)));
 #endif
 
 builder.Services.AddFlowRules<MortgageApplication>(PolicySetup.GetPolicy, (c) =>
