@@ -7,32 +7,32 @@ using FlowRules.Engine.Models;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Options;
 
-namespace FlowRules.Extensions.SqlServer
-{
-    public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
+namespace FlowRules.Extensions.SqlServer;
+
+public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
     where T : class
+{
+    private readonly SqlServerPolicyResultsRepositoryConfig _config;
+
+    private readonly string _sqlInsertFlowRulesRequest;
+    private readonly string _sqlInsertFlowRulesPolicyResult;
+    private readonly string _sqlInsertFlowRulesRuleResult;
+
+    public SqlServerPolicyResultsRepository(IOptions<SqlServerPolicyResultsRepositoryConfig> config)
     {
-        private readonly SqlServerPolicyResultsRepositoryConfig _config;
+        _config = config.Value;
 
-        private readonly string _sqlInsertFlowRulesRequest;
-        private readonly string _sqlInsertFlowRulesPolicyResult;
-        private readonly string _sqlInsertFlowRulesRuleResult;
-
-        public SqlServerPolicyResultsRepository(IOptions<SqlServerPolicyResultsRepositoryConfig> config)
+        if (string.IsNullOrEmpty(_config.ConnectionString))
         {
-            _config = config.Value;
+            throw new InvalidOperationException($"[{nameof(_config.ConnectionString)}] is not set.");
+        }
 
-            if (string.IsNullOrEmpty(_config.ConnectionString))
-            {
-                throw new InvalidOperationException($"[{nameof(_config.ConnectionString)}] is not set.");
-            }
-
-            if (string.IsNullOrEmpty(_config.SchemaName))
-            {
-                throw new InvalidOperationException($"[{nameof(_config.SchemaName)}] is not set.");
-            }
+        if (string.IsNullOrEmpty(_config.SchemaName))
+        {
+            throw new InvalidOperationException($"[{nameof(_config.SchemaName)}] is not set.");
+        }
             
-            _sqlInsertFlowRulesRequest = @$"
+        _sqlInsertFlowRulesRequest = @$"
                 INSERT INTO [{_config.SchemaName}].[FlowRulesRequest]
                     (FlowExecutionId, CorrelationId, PolicyId, Request)
                 VALUES
@@ -41,7 +41,7 @@ namespace FlowRules.Extensions.SqlServer
                 SELECT SCOPE_IDENTITY()
             ";
 
-            _sqlInsertFlowRulesPolicyResult = $@"
+        _sqlInsertFlowRulesPolicyResult = $@"
                 INSERT INTO [{_config.SchemaName}].[FlowRulesPolicyResult]
                     (FlowRulesRequest_Id, PolicyName, Passed, Version)  
                 VALUES 
@@ -50,54 +50,53 @@ namespace FlowRules.Extensions.SqlServer
                 SELECT SCOPE_IDENTITY()
             ";
 
-            _sqlInsertFlowRulesRuleResult = $@"
+        _sqlInsertFlowRulesRuleResult = $@"
                 INSERT INTO [{_config.SchemaName}].[FlowRulesRuleResult]
                     (FlowRulesPolicyResult_Id, RuleId, RuleName, RuleDescription, Passed, Message, Elapsed, Exception)
                 VALUES
                     (@FlowRulesPolicyResult_Id, @RuleId, @RuleName, @RuleDescription, @Passed, @Message, @Elapsed, @Exception)
             ";
-        }
+    }
 
-        public async Task PersistResults(T request, PolicyExecutionResult policyExecutionResult)
+    public async Task PersistResults(T request, PolicyExecutionResult policyExecutionResult)
+    {
+        using TransactionScope scope = new(TransactionScopeAsyncFlowOption.Enabled);
+
+        using IDbConnection connection = new SqlConnection(_config.ConnectionString);
+
+        connection.Open();
+
+        int requestId = await connection.ExecuteScalarAsync<int>(_sqlInsertFlowRulesRequest, new
         {
-            using TransactionScope scope = new(TransactionScopeAsyncFlowOption.Enabled);
+            FlowExecutionId = policyExecutionResult.RuleContextId,
+            CorrelationId = policyExecutionResult.CorrelationId,
+            PolicyId = policyExecutionResult.PolicyId,
+            Request = JsonSerializer.Serialize(request)
+        });
 
-            using IDbConnection connection = new SqlConnection(_config.ConnectionString);
+        int policyResultId = await connection.ExecuteScalarAsync<int>(_sqlInsertFlowRulesPolicyResult, new
+        {
+            FlowRulesRequest_Id = requestId,
+            PolicyName = policyExecutionResult.PolicyName,
+            Passed = policyExecutionResult.Passed,
+            Version = policyExecutionResult.Version
+        });
 
-            connection.Open();
-
-            int requestId = await connection.ExecuteScalarAsync<int>(_sqlInsertFlowRulesRequest, new
+        foreach (RuleExecutionResult? ruleResult in policyExecutionResult.RuleExecutionResults)
+        {
+            await connection.ExecuteAsync(_sqlInsertFlowRulesRuleResult, new
             {
-                FlowExecutionId = policyExecutionResult.RuleContextId,
-                CorrelationId = policyExecutionResult.CorrelationId,
-                PolicyId = policyExecutionResult.PolicyId,
-                Request = JsonSerializer.Serialize(request)
+                FlowRulesPolicyResult_Id = policyResultId,
+                RuleId = ruleResult.Id,
+                RuleName = ruleResult.Name,
+                RuleDescription = ruleResult.Description,
+                Passed = ruleResult.Passed,
+                Message = ruleResult.Message,
+                Elapsed = ruleResult.Elapsed,
+                Exception = ruleResult.Exception?.Message
             });
-
-            int policyResultId = await connection.ExecuteScalarAsync<int>(_sqlInsertFlowRulesPolicyResult, new
-            {
-                FlowRulesRequest_Id = requestId,
-                PolicyName = policyExecutionResult.PolicyName,
-                Passed = policyExecutionResult.Passed,
-                Version = policyExecutionResult.Version
-            });
-
-            foreach (RuleExecutionResult? ruleResult in policyExecutionResult.RuleExecutionResults)
-            {
-                await connection.ExecuteAsync(_sqlInsertFlowRulesRuleResult, new
-                {
-                    FlowRulesPolicyResult_Id = policyResultId,
-                    RuleId = ruleResult.Id,
-                    RuleName = ruleResult.Name,
-                    RuleDescription = ruleResult.Description,
-                    Passed = ruleResult.Passed,
-                    Message = ruleResult.Message,
-                    Elapsed = ruleResult.Elapsed,
-                    Exception = ruleResult.Exception?.Message
-                });
-            }
-
-            scope.Complete();
         }
+
+        scope.Complete();
     }
 }

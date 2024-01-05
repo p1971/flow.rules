@@ -1,42 +1,41 @@
-﻿namespace FlowRules.Samples.TestPolicy
+﻿namespace FlowRules.Samples.TestPolicy;
+
+public class ValueResolver
 {
-    public class ValueResolver
+    private readonly object? value;
+
+    public ValueResolver(object? value)
     {
-        private readonly object? value;
+        this.value = value;
+    }
 
-        public ValueResolver(object? value)
+    public object? AsObject
+    {
+        get
         {
-            this.value = value;
+            return value;
+        }
+    }
+
+    public string? AsString
+    {
+        get
+        {
+            return (string)value!;
+        }
+    }
+
+    public T As<T>() where T : struct
+    {
+        if (value == null)
+        {
+            return default;
         }
 
-        public object? AsObject
+        return typeof(T) switch
         {
-            get
-            {
-                return value;
-            }
-        }
-
-        public string? AsString
-        {
-            get
-            {
-                return (string)value!;
-            }
-        }
-
-        public T As<T>() where T : struct
-        {
-            if (value == null)
-            {
-                return default;
-            }
-
-            return typeof(T) switch
-            {
-                var testInt when testInt.GetType() == typeof(int) => (T)Convert.ChangeType(testInt, typeof(T)),
-                _ => default
-            };
-        }
+            var testInt when testInt.GetType() == typeof(int) => (T)Convert.ChangeType(testInt, typeof(T)),
+            _ => default
+        };
     }
 }
