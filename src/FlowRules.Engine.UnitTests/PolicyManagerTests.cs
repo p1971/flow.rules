@@ -7,7 +7,8 @@ using FlowRules.Engine.Models;
 
 using Microsoft.Extensions.Logging;
 
-using Moq;
+using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -142,12 +143,10 @@ public class PolicyManagerTests
 
         PersonDataModel personDataModel = new("Test User", new DateOnly(2000, 01, 01));
 
-        Mock<IPolicyResultsRepository<PersonDataModel>> moqPolicyResultsRepository = new();
-        moqPolicyResultsRepository.Setup(a =>
-                a.PersistResults(personDataModel, It.IsAny<PolicyExecutionResult>()))
-            .Throws<InvalidOperationException>();
+        IPolicyResultsRepository<PersonDataModel> mock = Substitute.For<IPolicyResultsRepository<PersonDataModel>>();
+        mock.PersistResults(personDataModel, Arg.Any<PolicyExecutionResult>()).ThrowsAsync<InvalidOperationException>();
 
-        PolicyManager<PersonDataModel> policyManager = new(policy, moqPolicyResultsRepository.Object, _logger);
+        PolicyManager<PersonDataModel> policyManager = new(policy, mock, _logger);
 
         CancellationTokenSource cancellationTokenSource = new();
         CancellationToken cancellationToken = cancellationTokenSource.Token;
