@@ -8,7 +8,8 @@ using FlowRules.Engine.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-using Moq;
+using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 using Xunit;
 using Xunit.Abstractions;
@@ -42,13 +43,15 @@ public class ServiceCollectionExtensionsTests
     {
         Policy<PersonDataModel> policy = GetTestPolicy();
 
-        Mock<IPolicyResultsRepository<PersonDataModel>> mockResultsRepository = new();
-
-        _subject.AddFlowRules<PersonDataModel>(() => policy, o => o.ResultsRepository = mockResultsRepository.Object.GetType());
+        IPolicyResultsRepository<PersonDataModel> mockResultsRepository = Substitute.For<IPolicyResultsRepository<PersonDataModel>>();
+        
+        _subject.AddFlowRules(
+            () => policy,
+            o => o.ResultsRepository = mockResultsRepository.GetType());
 
         ServiceProvider serviceProvider = _subject.BuildServiceProvider();
 
-        AssertResults(mockResultsRepository.Object.GetType(), serviceProvider);
+        AssertResults(mockResultsRepository.GetType(), serviceProvider);
     }
 
     private static void AssertResults(Type resultsRepositoryType, ServiceProvider serviceProvider)
