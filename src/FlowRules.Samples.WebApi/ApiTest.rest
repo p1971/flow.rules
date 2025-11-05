@@ -1,7 +1,11 @@
+@traceId = {{$guid}}
+@parentId = {{$guid}}
+
 ### All Pass
 POST http://localhost:5014/_execute
 Content-Type: application/json
-X-Correlation-Id: {{$guid}}
+traceparent: 00-{{traceId}}-{{parentId}}-01
+tracestate: env=dev
 
 {
     "ApplicantAge": 30,
@@ -15,7 +19,7 @@ X-Correlation-Id: {{$guid}}
 ### Fails LTV & DSR test
 POST http://localhost:5014/_execute
 Content-Type: application/json
-X-Correlation-Id: {{$guid}}
+traceparent: 00-{{traceId}}-{{parentId}}-01
 
 {
     "ApplicantAge": 30,
@@ -29,7 +33,7 @@ X-Correlation-Id: {{$guid}}
 ### Fails LTV test
 POST http://localhost:5014/_execute
 Content-Type: application/json
-X-Correlation-Id: {{$guid}}
+traceparent: 00-{{traceId}}-{{parentId}}-01
 
 {
     "ApplicantAge": 30,
@@ -43,7 +47,7 @@ X-Correlation-Id: {{$guid}}
 ### Fails DSR test
 POST http://localhost:5014/_execute
 Content-Type: application/json
-X-Correlation-Id: {{$guid}}
+traceparent: 00-{{traceId}}-{{parentId}}-01
 
 {
     "ApplicantAge": 30,

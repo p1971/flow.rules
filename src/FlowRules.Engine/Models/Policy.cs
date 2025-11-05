@@ -27,5 +27,5 @@ public class Policy<T>(string id, string name, string? description, IList<Rule<T
     /// <summary>
     /// Gets the rules of the policy.
     /// </summary>
-    public IList<Rule<T>> Rules { get; } = rules;
+    public IReadOnlyList<Rule<T>> Rules { get; } = rules.AsReadOnly();
 }

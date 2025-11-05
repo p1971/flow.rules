@@ -59,14 +59,14 @@ public class ServiceCollectionExtensionsTests
         Assert.NotNull(serviceProvider.GetService<Policy<PersonDataModel>>());
 
         Assert.NotNull(serviceProvider.GetService<IPolicyResultsRepository<PersonDataModel>>());
-        Assert.Equal(resultsRepositoryType, serviceProvider.GetService<IPolicyResultsRepository<PersonDataModel>>().GetType());
+        Assert.Equal(resultsRepositoryType, serviceProvider.GetService<IPolicyResultsRepository<PersonDataModel>>()!.GetType());
 
         Assert.NotNull(serviceProvider.GetService<IPolicyManager<PersonDataModel>>());
     }
 
     private static Policy<PersonDataModel> GetTestPolicy()
     {
-        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Instance
+        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
             .WithId("P001")
             .WithName("test policy")
             .WithDescription("policy description")

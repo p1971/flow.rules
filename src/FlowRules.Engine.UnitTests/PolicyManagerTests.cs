@@ -19,10 +19,12 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
 {
     private readonly ILogger<PolicyManager<PersonDataModel>> _logger = testOutputHelper.BuildLoggerFor<PolicyManager<PersonDataModel>>();
 
+    private readonly IFlowRulesTelemetryService _flowRulesTelemetryService = Substitute.For<IFlowRulesTelemetryService>();
+
     [Fact]
     public async Task Execute_Should_Handle_Map_Results()
     {
-        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Instance
+        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
             .WithId("P001")
             .WithName("test policy")
             .WithDescription("policy description")
@@ -36,6 +38,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
         Assert.NotNull(response);
 
         Assert.Equal(GetType().Assembly.GetName().Version?.ToString(4), response.Version);
+        Assert.NotNull(response.CorrelationId);
         Assert.NotEmpty(response.CorrelationId);
         Assert.True(response.Passed);
 
@@ -54,7 +57,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task Execute_Should_Handle_Exceptions_In_Rules()
     {
-        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Instance
+        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
             .WithId("P001")
             .WithName("test")
             .WithRule("R001", "test", (model, token) => throw new InvalidOperationException())
@@ -72,7 +75,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task Execute_Should_Format_Failure_Message()
     {
-        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Instance
+        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
             .WithId("P001")
             .WithName("test")
             .WithRule("R001", "test", (model, token) => Task.FromResult(false), failureMessage: model => $"Failed for {model.Name}")
@@ -91,7 +94,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task Execute_Should_Call_All_Rules()
     {
-        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Instance
+        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
             .WithId("P001")
             .WithName("test policy")
             .WithRule("R001", "rule1", (model, token) => Task.FromResult(true), description: "test description 1")
@@ -109,7 +112,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task Execute_Should_Allow_Cancellation()
     {
-        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Instance
+        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
             .WithId("P001")
             .WithName("test policy")
             .WithRule("R001", "rule1", async (model, token) =>
@@ -130,7 +133,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task Execute_Should_NotThrow_OnFailingToPersistResults()
     {
-        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Instance
+        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
             .WithId("P001")
             .WithName("test policy")
             .WithRule("R001", "rule1", (model, token) => Task.FromResult(true), description: "test description 1")
@@ -141,7 +144,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
         IPolicyResultsRepository<PersonDataModel> mock = Substitute.For<IPolicyResultsRepository<PersonDataModel>>();
         mock.PersistResults(personDataModel, Arg.Any<PolicyExecutionResult>()).ThrowsAsync<InvalidOperationException>();
 
-        PolicyManager<PersonDataModel> policyManager = new(policy, mock, _logger);
+        PolicyManager<PersonDataModel> policyManager = new(policy, mock, _flowRulesTelemetryService, _logger);
 
         CancellationTokenSource cancellationTokenSource = new();
         CancellationToken cancellationToken = cancellationTokenSource.Token;
@@ -158,7 +161,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task Execute_Should_Execute_Single_Rule()
     {
-        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Instance
+        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
             .WithId("P001")
             .WithName("test policy")
             .WithDescription("policy description")
@@ -168,7 +171,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
 
         PersonDataModel personDataModel = new("Test User", new DateOnly(2000, 01, 01));
 
-        PolicyManager<PersonDataModel> policyManager = new(policy, new DefaultPolicyResultsRepository<PersonDataModel>(), _logger);
+        PolicyManager<PersonDataModel> policyManager = new(policy, new DefaultPolicyResultsRepository<PersonDataModel>(), _flowRulesTelemetryService, _logger);
 
         CancellationTokenSource cancellationTokenSource = new();
         CancellationToken cancellationToken = cancellationTokenSource.Token;
@@ -185,7 +188,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
     [Fact]
     public async Task Execute_Should_Throw_For_Missing_Rule()
     {
-        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Instance
+        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
             .WithId("P001")
             .WithName("test policy")
             .WithDescription("policy description")
@@ -194,7 +197,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
 
         PersonDataModel personDataModel = new("Test User", new DateOnly(2000, 01, 01));
 
-        PolicyManager<PersonDataModel> policyManager = new(policy, new DefaultPolicyResultsRepository<PersonDataModel>(), _logger);
+        PolicyManager<PersonDataModel> policyManager = new(policy, new DefaultPolicyResultsRepository<PersonDataModel>(), _flowRulesTelemetryService, _logger);
 
         CancellationTokenSource cancellationTokenSource = new();
         CancellationToken cancellationToken = cancellationTokenSource.Token;
@@ -212,7 +215,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
 
     private async Task<PolicyExecutionResult> ExecutePolicy(Policy<PersonDataModel> policy, PersonDataModel personDataModel, int? timeoutInMilliseconds = null)
     {
-        PolicyManager<PersonDataModel> policyManager = new(policy, new DefaultPolicyResultsRepository<PersonDataModel>(), _logger);
+        PolicyManager<PersonDataModel> policyManager = new(policy, new DefaultPolicyResultsRepository<PersonDataModel>(), _flowRulesTelemetryService, _logger);
 
         CancellationTokenSource cancellationTokenSource =
             timeoutInMilliseconds != null

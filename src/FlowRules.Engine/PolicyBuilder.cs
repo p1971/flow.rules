@@ -69,15 +69,9 @@ public class PolicyBuilder<T>
     }
 
     /// <summary>
-    /// Gets an instance of the <see cref="PolicyBuilder{T}"/>.
+    /// Creates an instance of the <see cref="PolicyBuilder{T}"/>.
     /// </summary>
-    public static PolicyBuilder<T> Instance
-    {
-        get
-        {
-            return new PolicyBuilder<T>();
-        }
-    }
+    public static PolicyBuilder<T> Create() => new();
 
     /// <summary>
     /// Builds the policy.
@@ -85,6 +79,16 @@ public class PolicyBuilder<T>
     /// <returns>An instance of the <see cref="Policy{T}"/>.</returns>
     public Policy<T> Build()
     {
+        if (string.IsNullOrWhiteSpace(_id))
+        {
+            throw new InvalidOperationException("Policy Id must be set via WithId()");
+        }
+
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            throw new InvalidOperationException("Policy Name must be set via WithName()");
+        }
+
         return new Policy<T>(_id!, _name!, _description, _rules);
     }
 }
