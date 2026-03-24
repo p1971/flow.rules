@@ -14,11 +14,11 @@ namespace FlowRules.Engine;
 public class PolicyBuilder<T>
     where T : class
 {
-    private readonly List<Rule<T>> _rules = new();
+    private readonly List<Rule<T>> _rules = [];
 
-    private string _id;
-    private string _name;
-    private string _description;
+    private string? _id;
+    private string? _name;
+    private string? _description;
 
     /// <summary>
     /// Sets the Id of the policy.
@@ -62,22 +62,16 @@ public class PolicyBuilder<T>
     /// <param name="description">A description associated with the rule.</param>
     /// <param name="failureMessage">A failure message to emit if the rul fails.</param>
     /// <returns>The current instance of the <see cref="PolicyBuilder{T}"/>.</returns>
-    public PolicyBuilder<T> WithRule(string id, string name, Func<T, CancellationToken, Task<bool>> source, string description = null, Func<T, string> failureMessage = null)
+    public PolicyBuilder<T> WithRule(string id, string name, Func<T, CancellationToken, Task<bool>> source, string? description = null, Func<T, string>? failureMessage = null)
     {
         _rules.Add(new Rule<T>(id, name, description, failureMessage, source));
         return this;
     }
 
     /// <summary>
-    /// Gets an instance of the <see cref="PolicyBuilder{T}"/>.
+    /// Creates an instance of the <see cref="PolicyBuilder{T}"/>.
     /// </summary>
-    public static PolicyBuilder<T> Instance
-    {
-        get
-        {
-            return new PolicyBuilder<T>();
-        }
-    }
+    public static PolicyBuilder<T> Create() => new();
 
     /// <summary>
     /// Builds the policy.
@@ -85,6 +79,16 @@ public class PolicyBuilder<T>
     /// <returns>An instance of the <see cref="Policy{T}"/>.</returns>
     public Policy<T> Build()
     {
-        return new Policy<T>(_id, _name, _description, _rules);
+        if (string.IsNullOrWhiteSpace(_id))
+        {
+            throw new InvalidOperationException("Policy Id must be set via WithId()");
+        }
+
+        if (string.IsNullOrWhiteSpace(_name))
+        {
+            throw new InvalidOperationException("Policy Name must be set via WithName()");
+        }
+
+        return new Policy<T>(_id!, _name!, _description, _rules);
     }
 }

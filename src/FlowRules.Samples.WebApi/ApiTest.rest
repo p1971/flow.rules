@@ -1,10 +1,60 @@
-### 
+@traceId = {{$guid}}
+@parentId = {{$guid}}
+
+### All Pass
 POST http://localhost:5014/_execute
 Content-Type: application/json
-X-Correlation-Id: dslkdjsakld
+traceparent: 00-{{traceId}}-{{parentId}}-01
+tracestate: env=dev
 
 {
     "ApplicantAge": 30,
     "MortgageType": "FTB",
-    "LoanAmount": 50000
+    "LoanAmount": 400000,
+    "PrincipalAmount": 50000,
+    "GrossIncome" : 100000, 
+    "MonthlyLivingExpenses": 1000, 
+    "MonthlyHouseholdExpenses": 2000    
+}
+### Fails LTV & DSR test
+POST http://localhost:5014/_execute
+Content-Type: application/json
+traceparent: 00-{{traceId}}-{{parentId}}-01
+
+{
+    "ApplicantAge": 30,
+    "MortgageType": "FTB",
+    "LoanAmount": 400000,
+    "PrincipalAmount": 10000,
+    "GrossIncome" : 50000, 
+    "MonthlyLivingExpenses": 1000, 
+    "MonthlyHouseholdExpenses": 2000
+}
+### Fails LTV test
+POST http://localhost:5014/_execute
+Content-Type: application/json
+traceparent: 00-{{traceId}}-{{parentId}}-01
+
+{
+    "ApplicantAge": 30,
+    "MortgageType": "FTB",
+    "LoanAmount": 400000,
+    "PrincipalAmount": 10000,
+    "GrossIncome" : 100000, 
+    "MonthlyLivingExpenses": 1000, 
+    "MonthlyHouseholdExpenses": 2000    
+}
+### Fails DSR test
+POST http://localhost:5014/_execute
+Content-Type: application/json
+traceparent: 00-{{traceId}}-{{parentId}}-01
+
+{
+    "ApplicantAge": 30,
+    "MortgageType": "FTB",
+    "LoanAmount": 400000,
+    "PrincipalAmount": 50000,
+    "GrossIncome" : 50000, 
+    "MonthlyLivingExpenses": 1000, 
+    "MonthlyHouseholdExpenses": 2000    
 }

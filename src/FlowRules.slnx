@@ -1,0 +1,30 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Samples/">
+    <Project Path="FlowRules.AspireHost.AppHost/FlowRules.AspireHost.AppHost.csproj" />
+    <Project Path="FlowRules.Samples.Console/FlowRules.Samples.Console.csproj" />
+    <Project Path="FlowRules.Samples.TestPolicy/FlowRules.Samples.TestPolicy.csproj" />
+    <Project Path="FlowRules.Samples.WebApi/FlowRules.Samples.WebApi.csproj" />
+  </Folder>
+  <Folder Name="/Solution Items/">
+    <File Path="../codecov.yml" />
+    <File Path="../dependabot.yml" />
+    <File Path="../README.md" />
+    <File Path=".editorconfig" />
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+    <File Path=".globalconfig" />
+    <File Path="directory.build.props" />
+    <File Path="GitVersion.yml" />
+  </Folder>
+  <Folder Name="/Solution Items/workflows/">
+    <File Path="../.github/workflows/workflow.yml" />
+  </Folder>
+  <Project Path="FlowRules.Engine.UnitTests/FlowRules.Engine.UnitTests.csproj" />
+  <Project Path="FlowRules.Engine/FlowRules.Engine.csproj" />
+  <Project Path="FlowRules.Extensions.SqlServer/FlowRules.Extensions.SqlServer.csproj" />
+</Solution>

@@ -1,0 +1,13 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.2.0">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <UserSecretsId>80ada32d-a01e-445a-88c5-408148a35ed4</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FlowRules.Samples.WebApi\FlowRules.Samples.WebApi.csproj" />
+  </ItemGroup>
+
+</Project>
