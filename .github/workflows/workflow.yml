@@ -36,7 +36,7 @@ jobs:
       run: dotnet clean src
 
     - name: dotnet build
-      run: dotnet build src/FlowRules.sln --configuration ${{ env.BuildConfiguration }} /p:Version=${{ steps.gitversion.outputs.AssemblySemVer }};AssemblyFileVersion=${{ steps.gitversion.outputs.AssemblySemVer }};AssemblyVersion=${{ steps.gitversion.outputs.AssemblySemVer }};AssemblyInformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }}
+      run: dotnet build src/FlowRules.slnx --configuration ${{ env.BuildConfiguration }} /p:Version=${{ steps.gitversion.outputs.AssemblySemVer }};AssemblyFileVersion=${{ steps.gitversion.outputs.AssemblySemVer }};AssemblyVersion=${{ steps.gitversion.outputs.AssemblySemVer }};AssemblyInformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }}
 
     - name: dotnet test 
       run: dotnet test src --logger:"trx;LogFileName=TestResults.xml" --filter Category!=Extension --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=opencover --configuration ${{ env.BuildConfiguration }} 

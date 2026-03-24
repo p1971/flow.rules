@@ -43,6 +43,7 @@ public static class ServiceCollectionExtensions
             services.TryAddSingleton<IPolicyResultsRepository<T>, DefaultPolicyResultsRepository<T>>();
         }
 
+        services.AddSingleton<IFlowRulesTelemetryService, FlowRulesTelemetryService>();
         services.AddSingleton<IPolicyManager<T>, PolicyManager<T>>();
 
         return services;

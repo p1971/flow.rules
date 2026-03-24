@@ -1,7 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
         <Authors>pete@madhippy.com</Authors>
         <Description>SQL server policy results repository.</Description>
         <Product>FlowRules</Product>
@@ -10,8 +9,6 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <RepositoryUrl>https://github.com/p1971/flow.rules</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
         <PackageTags>rules</PackageTags>
         <PublishRepositoryUrl>true</PublishRepositoryUrl>
         <EmbedUntrackedSources>true</EmbedUntrackedSources>
@@ -22,9 +19,9 @@
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="Dapper" Version="2.1.35" />
-        <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
-        <PackageReference Include="Microsoft.Extensions.Options" Version="9.0.0" />
+        <PackageReference Include="Dapper" Version="2.1.72" />
+        <PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.0" />
+        <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.5" />
     </ItemGroup>
 
     <ItemGroup>

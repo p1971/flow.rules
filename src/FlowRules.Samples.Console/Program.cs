@@ -15,7 +15,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FlowRules.Samples.Console;
 
-public static class Program
+public static partial class Program
 {
     public static async Task Main(string[] args)
     {
@@ -30,7 +30,7 @@ public static class Program
 
         ServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
-        IPolicyManager<MortgageApplication> policyManager = serviceProvider.GetService<IPolicyManager<MortgageApplication>>();
+        IPolicyManager<MortgageApplication> policyManager = serviceProvider.GetService<IPolicyManager<MortgageApplication>>()!;
 
         MortgageApplication testMortgage = new(
             21,
@@ -47,7 +47,7 @@ public static class Program
 
         PolicyExecutionResult results = await policyManager.Execute(Guid.NewGuid().ToString(), Guid.NewGuid(), testMortgage, cancellationToken);
 
-        ILogger<MortgageApplication> logger = serviceProvider.GetService<ILogger<MortgageApplication>>();
+        ILogger<MortgageApplication> logger = serviceProvider.GetService<ILogger<MortgageApplication>>()!;
 
         LogResults(results, logger);
 
@@ -79,19 +79,21 @@ public static class Program
 
     private static void LogResults(PolicyExecutionResult results, ILogger<MortgageApplication> logger)
     {
-        logger.LogInformation("[{RuleContextId}] [{PolicyId}]:[{PolicyName}:{Version}] - {Passed}",
-            results.RuleContextId,
-            results.PolicyId,
-            results.PolicyName,
-            results.Version,
-            results.Passed);
+        LogPolicyResult(logger, results.RuleContextId, results.PolicyId, results.PolicyName, results.Version, results.Passed);
 
         if (results.RuleExecutionResults.Length > 0)
         {
             foreach (RuleExecutionResult result in results.RuleExecutionResults)
             {
-                logger.LogInformation("[{Id}]:[{Name}] - {Passed} {Message} ({Elapsed}ms)", result.Id, result.Name, result.Passed, result.Message ?? string.Empty, result.Elapsed);
+                LogRuleResults(logger, result.Id, result.Name, result.Passed, result.Message ?? string.Empty, result.Elapsed);
             }
         }
     }
+
+    [LoggerMessage(LogLevel.Information, "[{ruleContextId}] [{policyId}]:[{policyName}:{version}] - {passed}")]
+    private static partial void LogPolicyResult(this ILogger<MortgageApplication> logger, Guid ruleContextId, string? policyId, string? policyName, string? version, bool passed);
+
+
+    [LoggerMessage(LogLevel.Information, "[{id}]:[{name}] - {passed} {message} ({elapsed}ms)")]
+    private static partial void LogRuleResults(this ILogger<MortgageApplication> logger, string id, string name, bool passed, string message, TimeSpan elapsed);
 }

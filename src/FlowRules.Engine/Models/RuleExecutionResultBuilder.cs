@@ -50,6 +50,16 @@ namespace FlowRules.Engine.Models
         }
 
         /// <summary>
+        /// Adds a cancellation message to the rule result.
+        /// </summary>
+        /// <returns>The instance of the <see cref="RuleExecutionResultBuilder"/>.</returns>
+        public RuleExecutionResultBuilder WithCancellation()
+        {
+            _message = "Rule execution was cancelled.";
+            return this;
+        }
+
+        /// <summary>
         /// Adds the elapsed rule execution time to the results.
         /// </summary>
         /// <param name="elapsedTime">The elapsed time.</param>
