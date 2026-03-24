@@ -1,7 +1,5 @@
 # flow rules ![MIT](https://badgen.net/badge/license/MIT/green)
 
-## WORK IN PROGRESS
-
 A simple rules implementation for dotnet. Intended for use within a microservice implementation.
 
 ## CI
@@ -43,24 +41,37 @@ This works very well when paired with a [workflow engine](https://github.com/p19
 Lets consider a traditional process flow.
 
 ```mermaid
-graph TD;
-    A-->B([Is valid]);
-    B-->C;
-    B--Not valid-->Exit;
-    C-->D([Is within limits]);
-    D-->E
-    D--Not valid-->Exit;
+flowchart TD
+    Start([Start]) --> ValidCheck{Data Valid?}
+    ValidCheck -->|No| ShowError1["Show Error"]
+    ShowError1 --> End1([Stop])
+    ValidCheck -->|Yes| LimitCheck{Within Limits?}
+    LimitCheck -->|No| ShowError2["Show Error"]
+    ShowError2 --> End1
+    LimitCheck -->|Yes| Process["Process Request"]
+    Process --> End2([Success])
     
+    style End1 fill:#ff6b6b,color:#000000
+    style End2 fill:#51cf66,color:#000000
+    style ValidCheck fill:#ffd43b,color:#000000
+    style LimitCheck fill:#ffd43b,color:#000000    
 ```
 
 And now with a rules engine.
 
 ```mermaid
-flowchart TD;
-   A([Check rules])-->B;
-   A--Not valid-->C([Exit])
-   B-->D;
-   D-->E;    
+flowchart TD
+    Start([Start]) --> CheckRules["Execute All Rules"]
+    CheckRules --> AllPass{All Rules Pass?}
+    AllPass -->|No| CollectErrors["Collect All Failures"]
+    CollectErrors --> Exit1([Stop Processing])
+    AllPass -->|Yes| ProcessData["Process Request"]
+    ProcessData --> End([Success])
+    
+    style Exit1 fill:#ff6b6b,color:#000000
+    style End fill:#51cf66,color:#000000
+    style CheckRules fill:#4dabf7,color:#000000
+    style AllPass fill:#ffd43b,color:#000000
 ```
 
 ### Downsides
@@ -69,16 +80,28 @@ There are some downsides to this approach.
 
 Some rules engines use a DSL (domain specific language) which would require developers to switch away from a language they are familiar with to one they may not know and is perhaps harder to debug.
 
-In order or present a rich domain model to the rules engine, the process flow may require expensive service calls to provide all the data that the engine needs. This might be short circuited in a more traditional approach, skipping un-necessary api calls for example. This can be alleviated however by splitting the rules policies / process flow into a pre and post-process steps for example.
+In order to present a rich domain model to the rules engine, the process flow may require expensive service calls to provide all the data that the engine needs. This might be short circuited in a more traditional approach, skipping un-necessary api calls for example. This can be alleviated however by splitting the rules policies / process flow into a pre and post-process steps for example.
 
 ```mermaid
-flowchart TD;
-    A([Execute pre-validation policy])-->B([Failed]);
-    A--Success-->C;   
-    C--Get additional data-->D;
-    D([Execute post-validation policy])--Success-->E;
-    D-->B;
-
+flowchart TD
+    Start([Start]) --> PreValidate["Execute Pre-Validation Policy"]
+    PreValidate --> PreResult{Rules Pass?}
+    PreResult -->|No| Failed["Failed"]
+    Failed --> Exit([Stop])
+    
+    PreResult -->|Yes| FetchData["Fetch Additional Data"]
+    FetchData --> PostValidate["Execute Post-Validation Policy"]
+    PostValidate --> PostResult{Rules Pass?}
+    PostResult -->|No| Failed
+    PostResult -->|Yes| Success("Success")
+    Success --> End([Proceed])
+    
+    style Exit fill:#ff6b6b,color:#000000
+    style End fill:#51cf66,color:#000000
+    style Failed fill:#ff8787,color:#000000
+    style PreValidate fill:#4dabf7,color:#000000
+    style PostValidate fill:#4dabf7,color:#000000
+    style FetchData fill:#a8e6cf,color:#000000
 ```
 
 ## Getting started
@@ -224,19 +247,17 @@ builder.Services.AddFlowRules<MortgageApplication>(PolicySetup.GetPolicy, (c) =>
 
 Custom implementations can be registered similarly.
 
-### Monitoring performance
+### Monitoring Performance
 
-Counters are provided for the execution time of the policy and invidual rules.
-
-For example:
+Built-in performance counters track execution time for policies and individual rules:
 
 ```bash
 dotnet counters monitor --name FlowRules.Samples.WebApi --counters FlowRules
 ```
 
-example response:
+Example output:
 
-```bash
+```
 [FlowRules]
     P001 (ms)                                          100
     P001:MA001 (ms)                                     20
@@ -245,6 +266,26 @@ example response:
     P001:MA004 (ms)                                     50
 ```
 
-## Authors
+## Examples
 
-- Pete Robinson
+See the [samples](./src) directory for complete working examples:
+
+- **Console Application** - Simple console app demonstrating rule execution
+- **Web API** - ASP.NET Core API with OpenTelemetry and distributed tracing
+- **SQL Server Persistence** - Results storage using SQL Server
+
+Run the samples with:
+
+```bash
+dotnet run --project ./src/FlowRules.Samples.WebApi
+```
+
+Test the API endpoints using the included `.http` files or your preferred REST client.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues and pull requests to the [main repository](https://github.com/p1971/flow.rules).
+
+## License
+
+MIT License - see LICENSE file for details.
