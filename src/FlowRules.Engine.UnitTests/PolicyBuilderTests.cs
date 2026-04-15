@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 using FlowRules.Engine.Models;
 
@@ -9,6 +10,28 @@ namespace FlowRules.Engine.UnitTests;
 public class PolicyBuilderTests
 {
     private readonly PolicyBuilder<PersonDataModel> _subject = new();
+
+    [Fact]
+    public void Build_Should_Throw_When_Id_Not_Set()
+    {
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() =>
+            _subject
+                .WithName("Name")
+                .Build());
+
+        Assert.Contains("WithId", ex.Message);
+    }
+
+    [Fact]
+    public void Build_Should_Throw_When_Name_Not_Set()
+    {
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() =>
+            _subject
+                .WithId("T001")
+                .Build());
+
+        Assert.Contains("WithName", ex.Message);
+    }
 
     [Fact]
     public void Build_Should_Map_AllProperties()

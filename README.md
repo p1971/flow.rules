@@ -130,7 +130,7 @@ A rule is an assertion which must be true to pass.
 ### A simple dto to apply rules against
 
 ```csharp
-public record MortgageApplication(int ApplicantAge, string MortgageType, int LoanAmount);
+public record MortgageApplication(int ApplicantAge, string MortgageType, double LoanAmount, double PrincipalAmount);
 ```
 
 ### The rules policy
@@ -172,23 +172,21 @@ public class PolicyBuilder
         "LTV",
         "Loan-To-Value Ratio must be above the minimum threshold for lenders to satisfy loan serviceability requirements",
         (r) => {
-           double ltv = (r.LoanAmount - r.PrincipalAmount) / (double)r.LoanAmount * 100;
-           double minLTV = lookup["Default"][r.MortgageType]["MinLTV"].As<double>();
-
-           return $"The LTV ratio [{ltv}] is above the minimum threshold for the high-ltv loans [{minLTV}]. " +
-                  $"Either increase the principal {r.PrincipalAmount} or lower the loan amount {r.LoanAmount}";
+           double ltv = (r.LoanAmount - r.PrincipalAmount) / r.LoanAmount * 100;
+           return $"The LTV ratio [{ltv:F1}%] exceeds the maximum threshold. " +
+                  $"Either increase the principal {r.PrincipalAmount} or lower the loan amount {r.LoanAmount}.";
          },
-         (request, token) =>
+         async (request, token) =>
          {
             await Task.Delay(20, token);
-            double minLTV = lookup["Default"][request.MortgageType]["MinLTV"].As<double>();
-            double ltv = (request.LoanAmount - request.PrincipalAmount) / (double)request.LoanAmount * 100;                               
-            return ltv <= minLTV;
+            double ltv = (request.LoanAmount - request.PrincipalAmount) / request.LoanAmount * 100;
+            return ltv <= 95.0;
          });
 
     Policy<MortgageApplication> policy = new(
         "P001",
         "LoanPolicy",
+        "Simple loan policy",
         new List<Rule<MortgageApplication>>
         {
             validMortgageTypeRule,
@@ -211,12 +209,12 @@ ServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
 IPolicyManager<MortgageApplication> policyManager = serviceProvider.GetService<IPolicyManager<MortgageApplication>>();
 
-MortgageApplication testMortgage = new(21, "FTB", 500_000, 70_000, 120_000, 1000, 2000, 25);
+MortgageApplication testMortgage = new(21, "FTB", 500_000, 70_000);
 
 CancellationTokenSource cancellationTokenSource = new();
 CancellationToken cancellationToken = cancellationTokenSource.Token;
 
-PolicyExecutionResult results = await policyManager.Execute(Guid.NewGuid(), testMortgage, cancellationToken);
+PolicyExecutionResult results = await policyManager.Execute(Guid.NewGuid().ToString(), Guid.NewGuid(), testMortgage, cancellationToken);
 ```
 
 ### Logging results
