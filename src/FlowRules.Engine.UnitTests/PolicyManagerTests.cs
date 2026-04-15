@@ -213,6 +213,88 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
         });
     }
 
+    [Fact]
+    public async Task Execute_SingleRule_Should_Return_Failure_Result()
+    {
+        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
+            .WithId("P001")
+            .WithName("test policy")
+            .WithRule("R001", "test rule", (model, token) => Task.FromResult(false), failureMessage: model => $"Failed for {model.Name}")
+            .Build();
+
+        PersonDataModel personDataModel = new("Test User", new DateOnly(2000, 01, 01));
+
+        PolicyManager<PersonDataModel> policyManager = new(policy, new DefaultPolicyResultsRepository<PersonDataModel>(), _flowRulesTelemetryService, _logger);
+
+        CancellationTokenSource cancellationTokenSource = new();
+        RuleExecutionResult response = await policyManager.Execute("R001", Guid.NewGuid().ToString(), Guid.NewGuid(), personDataModel, cancellationTokenSource.Token);
+
+        Assert.Equal("R001", response.Id);
+        Assert.False(response.Passed);
+        Assert.Equal($"Failed for {personDataModel.Name}", response.Message);
+    }
+
+    [Fact]
+    public async Task Execute_SingleRule_Should_Return_Failed_Result_On_Exception()
+    {
+        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
+            .WithId("P001")
+            .WithName("test policy")
+            .WithRule("R001", "test rule", (model, token) => throw new InvalidOperationException("rule error"))
+            .Build();
+
+        PersonDataModel personDataModel = new("Test User", new DateOnly(2000, 01, 01));
+
+        PolicyManager<PersonDataModel> policyManager = new(policy, new DefaultPolicyResultsRepository<PersonDataModel>(), _flowRulesTelemetryService, _logger);
+
+        CancellationTokenSource cancellationTokenSource = new();
+        RuleExecutionResult response = await policyManager.Execute("R001", Guid.NewGuid().ToString(), Guid.NewGuid(), personDataModel, cancellationTokenSource.Token);
+
+        Assert.Equal("R001", response.Id);
+        Assert.False(response.Passed);
+        Assert.NotNull(response.Exception);
+    }
+
+    [Fact]
+    public async Task Execute_Should_Return_Failed_When_AnyRule_Fails()
+    {
+        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
+            .WithId("P001")
+            .WithName("test policy")
+            .WithRule("R001", "passing rule", (model, token) => Task.FromResult(true))
+            .WithRule("R002", "failing rule", (model, token) => Task.FromResult(false))
+            .Build();
+
+        PersonDataModel personDataModel = new("Test User", new DateOnly(2000, 01, 01));
+
+        PolicyExecutionResult response = await ExecutePolicy(policy, personDataModel);
+
+        Assert.NotNull(response);
+        Assert.False(response.Passed);
+        Assert.Equal(2, response.RuleExecutionResults.Length);
+        Assert.True(response.RuleExecutionResults[0].Passed);
+        Assert.False(response.RuleExecutionResults[1].Passed);
+    }
+
+    [Fact]
+    public async Task Execute_Should_Return_EmptyMessage_When_No_FailureMessage_Configured()
+    {
+        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
+            .WithId("P001")
+            .WithName("test policy")
+            .WithRule("R001", "test rule", (model, token) => Task.FromResult(false))
+            .Build();
+
+        PersonDataModel personDataModel = new("Test User", new DateOnly(2000, 01, 01));
+
+        PolicyExecutionResult response = await ExecutePolicy(policy, personDataModel);
+
+        Assert.NotNull(response);
+        Assert.Single(response.RuleExecutionResults);
+        Assert.False(response.RuleExecutionResults[0].Passed);
+        Assert.Equal(string.Empty, response.RuleExecutionResults[0].Message);
+    }
+
     private async Task<PolicyExecutionResult> ExecutePolicy(Policy<PersonDataModel> policy, PersonDataModel personDataModel, int? timeoutInMilliseconds = null)
     {
         PolicyManager<PersonDataModel> policyManager = new(policy, new DefaultPolicyResultsRepository<PersonDataModel>(), _flowRulesTelemetryService, _logger);
