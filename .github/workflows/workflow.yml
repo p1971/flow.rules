@@ -96,7 +96,7 @@ jobs:
             echo "VERSION=$version" >> $GITHUB_ENV
 
       - name: Push generated package to GitHub registry
-        if: contains(github.ref, 'develop') || contains(github.ref, 'releases')
+        if: contains(github.ref, 'develop') || contains(github.ref, 'releases') || contains(github.ref, 'feature')
         run: |
           dotnet nuget push ./nuget_packages/*.nupkg --source "https://nuget.pkg.github.com/p1971/index.json" --skip-duplicate --api-key ${{secrets.GITHUB_TOKEN}}          
         shell: bash

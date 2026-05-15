@@ -1,7 +1,11 @@
-﻿using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+﻿using FlowRules.Engine;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OpenTelemetry;
+using OpenTelemetry.Exporter;
+using OpenTelemetry.Logs;
 using OpenTelemetry.Metrics;
+using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 namespace FlowRules.Samples.WebApi;
@@ -44,56 +48,68 @@ public static class Extensions
 
         public TBuilder ConfigureOpenTelemetry()
         {
+            string serviceName = builder.Configuration["OTEL_SERVICE_NAME"] ?? builder.Environment.ApplicationName;
+            string endpoint = builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] ?? "http://localhost:4318";
+            OtlpExportProtocol protocol = string.Equals(
+                builder.Configuration["OTEL_EXPORTER_OTLP_PROTOCOL"], "grpc", StringComparison.OrdinalIgnoreCase)
+                    ? OtlpExportProtocol.Grpc
+                    : OtlpExportProtocol.HttpProtobuf;
+
+            ResourceBuilder resource = ResourceBuilder.CreateDefault()
+                .AddService(serviceName)
+                .AddTelemetrySdk()
+                .AddEnvironmentVariableDetector();
+
             builder.Logging.AddOpenTelemetry(logging =>
             {
+                logging.SetResourceBuilder(resource);
                 logging.IncludeFormattedMessage = true;
                 logging.IncludeScopes = true;
+                logging.AddOtlpExporter(o =>
+                {
+                    o.Endpoint = new Uri($"{endpoint}/v1/logs");
+                    o.Protocol = protocol;
+                });
             });
 
             builder.Services.AddOpenTelemetry()
                 .WithMetrics(metrics =>
                 {
-                    metrics.AddAspNetCoreInstrumentation()
+                    metrics
+                        .SetResourceBuilder(resource)
+                        .AddAspNetCoreInstrumentation()
                         .AddHttpClientInstrumentation()
-                        .AddRuntimeInstrumentation();
-                
-                    metrics.AddMeter("FlowRules");
+                        .AddRuntimeInstrumentation()
+                        .AddMeter(FlowRulesTelemetry.MeterName)
+                        .AddOtlpExporter(o =>
+                        {
+                            o.Endpoint = new Uri($"{endpoint}/v1/metrics");
+                            o.Protocol = protocol;
+                        });
                 })
                 .WithTracing(tracing =>
                 {
-                    tracing.AddSource(builder.Environment.ApplicationName, "FlowRules.Policy")
-                        .AddAspNetCoreInstrumentation(tracing =>
-                            // Exclude health check requests from tracing
-                            tracing.Filter = context =>
+                    tracing
+                        .SetResourceBuilder(resource)
+                        .AddSource(builder.Environment.ApplicationName, FlowRulesTelemetry.ActivitySourceName)
+                        .AddAspNetCoreInstrumentation(o =>
+                            o.Filter = context =>
                                 !context.Request.Path.StartsWithSegments(HealthEndpointPath)
-                                && !context.Request.Path.StartsWithSegments(AlivenessEndpointPath)
-                        )
-                        // Uncomment the following line to enable gRPC instrumentation (requires the OpenTelemetry.Instrumentation.GrpcNetClient package)
-                        //.AddGrpcClientInstrumentation()
-                        .AddHttpClientInstrumentation();
+                                && !context.Request.Path.StartsWithSegments(AlivenessEndpointPath))
+                        .AddHttpClientInstrumentation()
+                        .AddOtlpExporter(o =>
+                        {
+                            o.Endpoint = new Uri($"{endpoint}/v1/traces");
+                            o.Protocol = protocol;
+                        });
                 });
-
-            builder.AddOpenTelemetryExporters();
 
             return builder;
         }
 
         private TBuilder AddOpenTelemetryExporters()
         {
-            bool useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
-
-            if (useOtlpExporter)
-            {
-                builder.Services.AddOpenTelemetry().UseOtlpExporter();
-            }
-
-            // Uncomment the following lines to enable the Azure Monitor exporter (requires the Azure.Monitor.OpenTelemetry.AspNetCore package)
-            //if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
-            //{
-            //    builder.Services.AddOpenTelemetry()
-            //       .UseAzureMonitor();
-            //}
-
+            // Exporters are now configured per-signal in ConfigureOpenTelemetry with explicit /v1/* paths.
             return builder;
         }
 

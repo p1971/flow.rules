@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace FlowRules.Engine.Models;
 
@@ -12,12 +13,12 @@ public class Policy<T>(string id, string name, string? description, IList<Rule<T
     /// <summary>
     /// Gets the id of the policy.
     /// </summary>
-    public string Id { get; } = id;
+    public string Id { get; } = ValidateId(id);
 
     /// <summary>
     /// Gets the name of the policy.
     /// </summary>
-    public string Name { get; } = name;
+    public string Name { get; } = ValidateName(name);
 
     /// <summary>
     /// Gets the description of the policy.
@@ -27,5 +28,29 @@ public class Policy<T>(string id, string name, string? description, IList<Rule<T
     /// <summary>
     /// Gets the rules of the policy.
     /// </summary>
-    public IReadOnlyList<Rule<T>> Rules { get; } = rules.AsReadOnly();
+    public IReadOnlyList<Rule<T>> Rules { get; } = ValidateRules(rules);
+
+    private static string ValidateId(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(id));
+        return value;
+    }
+
+    private static string ValidateName(string value)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(name));
+        return value;
+    }
+
+    private static IReadOnlyList<Rule<T>> ValidateRules(IList<Rule<T>> value)
+    {
+        ArgumentNullException.ThrowIfNull(value);
+
+        if (value.Count == 0)
+        {
+            throw new ArgumentException("A policy must contain at least one rule.", nameof(rules));
+        }
+
+        return value.AsReadOnly();
+    }
 }

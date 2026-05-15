@@ -30,6 +30,8 @@ builder.AddServiceDefaults();
 
 WebApplication app = builder.Build();
 
+app.MapDefaultEndpoints();
+
 app.MapPost("/_execute", async (
     [FromBody] MortgageApplication mortgageApplication,
     [FromServices] IPolicyManager<MortgageApplication> policyManager,

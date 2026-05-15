@@ -13,8 +13,12 @@ using Microsoft.Extensions.Logging;
 namespace FlowRules.Engine;
 
 /// <inheritdoc />
-public class PolicyManager<T>(Policy<T> policy, IPolicyResultsRepository<T> resultsRepository, IFlowRulesTelemetryService flowRulesEventCounterSource, ILogger<PolicyManager<T>> logger) : IPolicyManager<T>
-    where T : class
+public class PolicyManager<T>(
+    Policy<T> policy,
+    IPolicyResultsRepository<T> resultsRepository,
+    IFlowRulesTelemetryService flowRulesEventCounterSource,
+    ILogger<PolicyManager<T>> logger) : IPolicyManager<T>
+        where T : class
 {
     private readonly Lazy<Dictionary<string, Rule<T>>> _rulesByIdCache =
         new(() => policy.Rules.ToDictionary(r => r.Id));
