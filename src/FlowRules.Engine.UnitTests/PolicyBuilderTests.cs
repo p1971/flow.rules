@@ -34,6 +34,18 @@ public class PolicyBuilderTests
     }
 
     [Fact]
+    public void Build_Should_Throw_When_No_Rules_Are_Set()
+    {
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() =>
+            _subject
+                .WithId("T001")
+                .WithName("Name")
+                .Build());
+
+        Assert.Contains("WithRule", ex.Message);
+    }
+
+    [Fact]
     public void Build_Should_Map_AllProperties()
     {
         Policy<PersonDataModel> policy = _subject
@@ -55,5 +67,14 @@ public class PolicyBuilderTests
         Assert.Equal("rule desc", rule.Description);
         Assert.NotNull(rule.Source);
         Assert.NotNull(rule.FailureMessage);
+    }
+
+    [Fact]
+    public void Policy_Should_Throw_When_Constructed_With_Empty_Rules()
+    {
+        ArgumentException ex = Assert.Throws<ArgumentException>(() =>
+            new Policy<PersonDataModel>("T001", "Name", "Desc", []));
+
+        Assert.Contains("at least one rule", ex.Message);
     }
 }

@@ -217,9 +217,9 @@ CancellationToken cancellationToken = cancellationTokenSource.Token;
 PolicyExecutionResult results = await policyManager.Execute(Guid.NewGuid().ToString(), Guid.NewGuid(), testMortgage, cancellationToken);
 ```
 
-### Logging results
+### Persisting results
 
-Results are logged via the `IPolicyResultsRepository<in T>` implementation. The default implementation just logs to `ILogger<T>`.
+Results can be persisted via the `IPolicyResultsRepository<in T>` implementation. The default implementation is a no-op, so register a custom repository if you want to store execution results.
 
 The interface is fairly simple:
 

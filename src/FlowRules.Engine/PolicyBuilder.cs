@@ -89,6 +89,11 @@ public class PolicyBuilder<T>
             throw new InvalidOperationException("Policy Name must be set via WithName()");
         }
 
+        if (_rules.Count == 0)
+        {
+            throw new InvalidOperationException("Policy must contain at least one rule via WithRule()");
+        }
+
         return new Policy<T>(_id!, _name!, _description, _rules);
     }
 }
