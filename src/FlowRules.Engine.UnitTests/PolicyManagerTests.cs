@@ -8,8 +8,6 @@ using FlowRules.Engine.Models;
 using Microsoft.Extensions.Logging;
 
 using NSubstitute;
-using NSubstitute.ExceptionExtensions;
-
 using Xunit;
 using Xunit.Abstractions;
 
@@ -19,7 +17,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
 {
     private readonly ILogger<PolicyManager<PersonDataModel>> _logger = testOutputHelper.BuildLoggerFor<PolicyManager<PersonDataModel>>();
 
-    private readonly IFlowRulesTelemetryService _flowRulesTelemetryService = Substitute.For<IFlowRulesTelemetryService>();
+    private readonly IFlowRulesTelemetryService _flowRulesTelemetryService = new NoOpFlowRulesTelemetryService();
 
     [Fact]
     public async Task Execute_Should_Handle_Map_Results()
@@ -28,6 +26,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
             .WithId("P001")
             .WithName("test policy")
             .WithDescription("policy description")
+            .WithVersion("1.2.3")
             .WithRule("R001", "test rule", (model, token) => Task.FromResult(true), description: "test description")
             .Build();
 
@@ -37,7 +36,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
 
         Assert.NotNull(response);
 
-        Assert.Equal(GetType().Assembly.GetName().Version?.ToString(4), response.Version);
+        Assert.Equal("1.2.3", response.Version);
         Assert.NotNull(response.CorrelationId);
         Assert.NotEmpty(response.CorrelationId);
         Assert.True(response.Passed);
@@ -60,7 +59,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
         Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
             .WithId("P001")
             .WithName("test")
-            .WithRule("R001", "test", (model, token) => throw new InvalidOperationException())
+            .WithRule("R001", "test", (model, token) => ValueTask.FromException<bool>(new InvalidOperationException()))
             .Build();
 
         PersonDataModel personDataModel = new("Test User", new DateOnly(2000, 01, 01));
@@ -115,11 +114,11 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
         Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
             .WithId("P001")
             .WithName("test policy")
-            .WithRule("R001", "rule1", async (model, token) =>
+            .WithRule("R001", "rule1", new Func<PersonDataModel, CancellationToken, Task<bool>>(async (model, token) =>
             {
                 await Task.Delay(200, token);
                 return true;
-            }, description: "test description 1")
+            }), description: "test description 1")
             .Build();
 
         PersonDataModel personDataModel = new("Test User", new DateOnly(2000, 01, 01));
@@ -142,7 +141,8 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
         PersonDataModel personDataModel = new("Test User", new DateOnly(2000, 01, 01));
 
         IPolicyResultsRepository<PersonDataModel> mock = Substitute.For<IPolicyResultsRepository<PersonDataModel>>();
-        mock.PersistResults(personDataModel, Arg.Any<PolicyExecutionResult>()).ThrowsAsync<InvalidOperationException>();
+        mock.PersistResults(personDataModel, Arg.Any<PolicyExecutionResult>())
+            .Returns(_ => throw new InvalidOperationException());
 
         PolicyManager<PersonDataModel> policyManager = new(policy, mock, _flowRulesTelemetryService, _logger);
 
@@ -240,7 +240,7 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
         Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
             .WithId("P001")
             .WithName("test policy")
-            .WithRule("R001", "test rule", (model, token) => throw new InvalidOperationException("rule error"))
+            .WithRule("R001", "test rule", (model, token) => ValueTask.FromException<bool>(new InvalidOperationException("rule error")))
             .Build();
 
         PersonDataModel personDataModel = new("Test User", new DateOnly(2000, 01, 01));

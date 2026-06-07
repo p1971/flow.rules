@@ -7,7 +7,6 @@ using FlowRules.Extensions.SqlServer;
 using FlowRules.Samples.TestPolicy;
 using FlowRules.Samples.WebApi;
 using Microsoft.AspNetCore.Mvc;
-using OpenTelemetry.Trace;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
@@ -36,7 +35,6 @@ app.MapPost("/_execute", async (
     [FromBody] MortgageApplication mortgageApplication,
     [FromServices] IPolicyManager<MortgageApplication> policyManager,
     [FromHeader(Name = "traceparent")] string? correlationIdHeader,
-    [FromServices] TracerProvider tracerProvider,
     CancellationToken cancellationToken) =>
 {
     string correlationId = correlationIdHeader ?? Guid.NewGuid().ToString();

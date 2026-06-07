@@ -16,7 +16,7 @@ namespace FlowRules.Engine.UnitTests;
 
 public class PolicyRegistryTests(ITestOutputHelper testOutputHelper)
 {
-    private readonly IFlowRulesTelemetryService _telemetryService = Substitute.For<IFlowRulesTelemetryService>();
+    private readonly IFlowRulesTelemetryService _telemetryService = new NoOpFlowRulesTelemetryService();
 
     // ---------------------------------------------------------------------------
     // Helpers
@@ -118,7 +118,7 @@ public class PolicyRegistryTests(ITestOutputHelper testOutputHelper)
             new PolicyRegistryEntry<PersonDataModel>("P001", BuildManager(policy)));
 
         InvalidOperationException ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => registry.ExecuteAsync<PersonDataModel>("UNKNOWN", "corr-3", Guid.NewGuid(),
+            async () => await registry.ExecuteAsync<PersonDataModel>("UNKNOWN", "corr-3", Guid.NewGuid(),
                 new PersonDataModel("Bob", new DateOnly(1985, 5, 5)), CancellationToken.None));
 
         Assert.Contains("UNKNOWN", ex.Message);
@@ -134,7 +134,7 @@ public class PolicyRegistryTests(ITestOutputHelper testOutputHelper)
 
         // Pass an AddressDataModel where a PersonDataModel is expected.
         InvalidOperationException ex = await Assert.ThrowsAsync<InvalidOperationException>(
-            () => registry.ExecuteAsync<AddressDataModel>("P001", "corr-4", Guid.NewGuid(),
+            async () => await registry.ExecuteAsync<AddressDataModel>("P001", "corr-4", Guid.NewGuid(),
                 new AddressDataModel("1 Main St", "Paris"), CancellationToken.None));
 
         Assert.Contains(nameof(PersonDataModel), ex.Message);

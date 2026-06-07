@@ -10,7 +10,7 @@ Define business policies as composable, async rules against any request model, e
 
 - **Strongly-typed policies** - each `Policy<T>` is bound to a specific request model; no casting or reflection at runtime.
 - **Fluent builder** - compose policies and rules with `PolicyBuilder<T>`.
-- **Async rules** - every rule predicate is `Func<T, CancellationToken, Task<bool>>`.
+- **Async rules** - every rule predicate is `Func<T, CancellationToken, ValueTask<bool>>`; `Task<bool>` rules are also supported for compatibility.
 - **Structured results** - `PolicyExecutionResult` captures pass/fail at both policy and individual rule level, including optional dynamic failure messages.
 - **Single-rule execution** - execute a specific rule by id for targeted validation scenarios.
 - **Multi-policy registry** - `IPolicyRegistry` manages policies across many DTO types and dispatches execution by policy id without requiring a separately injected `IPolicyManager<T>` per policy.
@@ -37,10 +37,11 @@ Policy<OrderRequest> policy = PolicyBuilder<OrderRequest>
     .WithId("order-validation")
     .WithName("Order Validation Policy")
     .WithDescription("Validates incoming order requests.")
+    .WithVersion("1.0.0")
     .WithRule(
         id: "R001",
         name: "Amount must be positive",
-        source: (request, ct) => Task.FromResult(request.Amount > 0),
+        source: (request, ct) => ValueTask.FromResult(request.Amount > 0),
         failureMessage: request => $"Amount {request.Amount} is not positive.")
     .WithRule(
         id: "R002",
@@ -62,6 +63,12 @@ builder.Services.AddFlowRules<OrderRequest>(() => policy);
 builder.Services.AddFlowRules<OrderRequest>(() => orderPolicy);
 builder.Services.AddFlowRules<CustomerRequest>(() => customerPolicy);
 builder.Services.AddFlowRulesRegistry();
+
+// Disable FlowRules telemetry if the application should not export it
+builder.Services.AddFlowRules<OrderRequest>(() => policy, options =>
+{
+    options.ExportTelemetry = false;
+});
 ```
 
 ### 3. Execute a policy
@@ -90,7 +97,7 @@ if (!result.Passed)
 {
     foreach (RuleExecutionResult rule in result.RuleExecutionResults.Where(r => !r.Passed))
     {
-        Console.WriteLine($"[{rule.RuleId}] {rule.FailureMessage}");
+        Console.WriteLine($"[{rule.Id}] {rule.Message}");
     }
 }
 ```

@@ -34,7 +34,7 @@ public interface IPolicyRegistry
     /// Thrown when <paramref name="policyId"/> is not registered, or when the registered
     /// policy does not operate on <typeparamref name="T"/>.
     /// </exception>
-    Task<PolicyExecutionResult> ExecuteAsync<T>(
+    ValueTask<PolicyExecutionResult> ExecuteAsync<T>(
         string policyId,
         string correlationId,
         Guid executionContextId,

@@ -110,6 +110,10 @@ dotnet_naming_rule.non_field_members_should_be_pascal_case.severity = suggestion
 dotnet_naming_rule.non_field_members_should_be_pascal_case.symbols = non_field_members
 dotnet_naming_rule.non_field_members_should_be_pascal_case.style = pascal_case
 
+dotnet_naming_rule.public_properties_should_be_pascal_case.severity = suggestion
+dotnet_naming_rule.public_properties_should_be_pascal_case.symbols = public_properties
+dotnet_naming_rule.public_properties_should_be_pascal_case.style = pascal_case
+
 # Symbol specifications
 
 dotnet_naming_symbols.interface.applicable_kinds = interface
@@ -122,7 +126,11 @@ dotnet_naming_symbols.types.required_modifiers =
 
 dotnet_naming_symbols.non_field_members.applicable_kinds = property, event, method
 dotnet_naming_symbols.non_field_members.applicable_accessibilities = public, internal, private, protected, protected_internal, private_protected
-dotnet_naming_symbols.non_field_members.required_modifiers = 
+dotnet_naming_symbols.non_field_members.required_modifiers =
+
+dotnet_naming_symbols.public_properties.applicable_kinds = property
+dotnet_naming_symbols.public_properties.applicable_accessibilities = public
+dotnet_naming_symbols.public_properties.required_modifiers =
 
 # Naming styles
 

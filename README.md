@@ -115,6 +115,7 @@ A policy is a collection of rules.
 | Id             | A unique identifier for the policy.         | P0001               |
 | Name           | A human readable name for the policy.       | BasicDecisionPolicy |
 | Description    | A description for the policy.               | Basic checks.       |
+| Version        | An optional version for audit and persisted results. | 1.0.0 |
 | Rules          | The list of rules belonging to the policy.  |                     |
 
 A rule is an assertion which must be true to pass.
@@ -150,9 +151,9 @@ public class PolicyBuilder
             switch(request.MortgageType)
             {
                 case "FTB":
-                    return Task.FromResult(true);
+                    return ValueTask.FromResult(true);
                 default: 
-                    return Task.FromResult(false);
+                    return ValueTask.FromResult(false);
             }
         });
 
@@ -164,7 +165,7 @@ public class PolicyBuilder
         (request, token) =>
         {
             int minAgeForMortgage = 21;
-            return Task.FromResult(request.ApplicantAge >= minAgeForMortgage);
+            return ValueTask.FromResult(request.ApplicantAge >= minAgeForMortgage);
         });
 
     Rule<MortgageApplication> lendersCanServiceLoanBasedOnLTVRule = new(
@@ -244,6 +245,15 @@ builder.Services.AddFlowRules<MortgageApplication>(PolicySetup.GetPolicy, (c) =>
 ```
 
 Custom implementations can be registered similarly.
+
+Telemetry is exported by default. To disable FlowRules telemetry registration, set `ExportTelemetry` to `false`:
+
+```csharp
+builder.Services.AddFlowRules<MortgageApplication>(PolicySetup.GetPolicy, (c) =>
+{
+    c.ExportTelemetry = false;
+});
+```
 
 ### Monitoring Performance
 

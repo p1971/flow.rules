@@ -8,7 +8,7 @@ namespace FlowRules.Engine.Interfaces
     /// <summary>
     /// Provides telemetry services for monitoring and tracking the execution of policies and rules.
     /// </summary>
-    public interface IFlowRulesTelemetryService
+    internal interface IFlowRulesTelemetryService
     {
         /// <summary>
         /// Tracks the execution of a policy, recording telemetry data such as execution time and context information.

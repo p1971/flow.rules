@@ -5,13 +5,16 @@ using System.Threading.Tasks;
 using FlowRules.Engine.Extensions;
 using FlowRules.Engine.Interfaces;
 using FlowRules.Engine.Models;
-using FlowRules.Extensions.SqlServer;
 using FlowRules.Samples.TestPolicy;
 
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
+#if SQLSERVER
+using FlowRules.Extensions.SqlServer;
+#endif
 
 namespace FlowRules.Samples.Console;
 
