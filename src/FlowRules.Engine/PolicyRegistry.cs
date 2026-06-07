@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -13,7 +12,7 @@ namespace FlowRules.Engine;
 /// A type-erased registry of policies across multiple request types.
 /// Dispatches execution to the correct <see cref="IPolicyManager{T}"/> by policy id.
 /// </summary>
-public sealed class PolicyRegistry : IPolicyRegistry
+internal sealed class PolicyRegistry : IPolicyRegistry
 {
     private readonly Dictionary<string, IPolicyRegistryEntry> _entries;
 
@@ -40,7 +39,7 @@ public sealed class PolicyRegistry : IPolicyRegistry
     public IReadOnlyList<string> PolicyIds => [.. _entries.Keys];
 
     /// <inheritdoc />
-    public Task<PolicyExecutionResult> ExecuteAsync<T>(
+    public ValueTask<PolicyExecutionResult> ExecuteAsync<T>(
         string policyId,
         string correlationId,
         Guid executionContextId,

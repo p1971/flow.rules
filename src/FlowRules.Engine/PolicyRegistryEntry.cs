@@ -12,7 +12,7 @@ namespace FlowRules.Engine;
 /// so that the registry can hold managers for different request types in one collection.
 /// </summary>
 /// <typeparam name="T">The request type the policy operates on.</typeparam>
-public sealed class PolicyRegistryEntry<T>(string policyId, IPolicyManager<T> manager)
+internal sealed class PolicyRegistryEntry<T>(string policyId, IPolicyManager<T> manager)
     : IPolicyRegistryEntry<T>
     where T : class
 {
@@ -23,7 +23,7 @@ public sealed class PolicyRegistryEntry<T>(string policyId, IPolicyManager<T> ma
     public Type RequestType { get; } = typeof(T);
 
     /// <inheritdoc />
-    public Task<PolicyExecutionResult> ExecuteAsync(
+    public ValueTask<PolicyExecutionResult> ExecuteAsync(
         string correlationId,
         Guid executionContextId,
         T request,

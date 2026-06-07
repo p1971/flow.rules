@@ -48,7 +48,7 @@ public static class ServiceCollectionExtensions
         // Key the Policy<T> and its IPolicyManager<T> by policy id so that multiple
         // policies for the same T can coexist without the second registration
         // silently overwriting the first.
-        services.AddKeyedSingleton(policyId, (_, _) => policy);
+        services.AddKeyedSingleton<Policy<T>>(policyId, (_, _) => policy);
 
         if (options.ResultsRepository != null)
         {
@@ -59,7 +59,14 @@ public static class ServiceCollectionExtensions
             services.TryAddSingleton<IPolicyResultsRepository<T>, DefaultPolicyResultsRepository<T>>();
         }
 
-        services.TryAddSingleton<IFlowRulesTelemetryService, FlowRulesTelemetryService>();
+        if (options.ExportTelemetry)
+        {
+            services.TryAddSingleton<IFlowRulesTelemetryService, FlowRulesTelemetryService>();
+        }
+        else
+        {
+            services.Replace(ServiceDescriptor.Singleton<IFlowRulesTelemetryService, NoOpFlowRulesTelemetryService>());
+        }
 
         services.AddKeyedSingleton<IPolicyManager<T>>(policyId, (sp, _) =>
         {

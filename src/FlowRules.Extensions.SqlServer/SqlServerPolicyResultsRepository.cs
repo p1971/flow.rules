@@ -59,7 +59,7 @@ public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
             ";
     }
 
-    public async Task PersistResults(T request, PolicyExecutionResult policyExecutionResult)
+    public async ValueTask PersistResults(T request, PolicyExecutionResult policyExecutionResult)
     {
         using TransactionScope scope = new(TransactionScopeAsyncFlowOption.Enabled);
 

@@ -55,6 +55,57 @@ public class ServiceCollectionExtensionsTests
     }
 
     [Fact]
+    public void AddFlowRules_Should_Add_Telemetry_By_Default()
+    {
+        Policy<PersonDataModel> policy = GetTestPolicy("P001");
+
+        _subject.AddFlowRules<PersonDataModel>(() => policy);
+
+        ServiceProvider serviceProvider = _subject.BuildServiceProvider();
+
+        IFlowRulesTelemetryService telemetryService =
+            serviceProvider.GetRequiredService<IFlowRulesTelemetryService>();
+
+        Assert.IsType<FlowRulesTelemetryService>(telemetryService);
+    }
+
+    [Fact]
+    public void AddFlowRules_Should_Add_NoOp_Telemetry_When_Disabled()
+    {
+        Policy<PersonDataModel> policy = GetTestPolicy("P001");
+
+        _subject.AddFlowRules<PersonDataModel>(
+            () => policy,
+            options => options.ExportTelemetry = false);
+
+        ServiceProvider serviceProvider = _subject.BuildServiceProvider();
+
+        IFlowRulesTelemetryService telemetryService =
+            serviceProvider.GetRequiredService<IFlowRulesTelemetryService>();
+
+        Assert.IsType<NoOpFlowRulesTelemetryService>(telemetryService);
+    }
+
+    [Fact]
+    public void AddFlowRules_Should_Replace_Telemetry_When_Disabled_After_Default_Registration()
+    {
+        Policy<PersonDataModel> policy1 = GetTestPolicy("P001");
+        Policy<PersonDataModel> policy2 = GetTestPolicy("P002");
+
+        _subject.AddFlowRules<PersonDataModel>(() => policy1);
+        _subject.AddFlowRules<PersonDataModel>(
+            () => policy2,
+            options => options.ExportTelemetry = false);
+
+        ServiceProvider serviceProvider = _subject.BuildServiceProvider();
+
+        IFlowRulesTelemetryService telemetryService =
+            serviceProvider.GetRequiredService<IFlowRulesTelemetryService>();
+
+        Assert.IsType<NoOpFlowRulesTelemetryService>(telemetryService);
+    }
+
+    [Fact]
     public void AddFlowRules_Should_Support_Multiple_Policies_For_Same_Type()
     {
         Policy<PersonDataModel> policy1 = GetTestPolicy("P001");

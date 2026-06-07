@@ -79,7 +79,7 @@ internal sealed class FlowRulesTelemetryService : IFlowRulesTelemetryService
     public Activity? StartActivity<T>(Policy<T> policy, Guid contextId, string correlationId)
         where T : class
     {
-        Activity? activity = PolicyActivitySource.StartActivity(PolicyExecuteOperation);
+        Activity? activity = PolicyActivitySource.StartActivity(name: PolicyExecuteOperation);
 
         activity?.SetTag(PolicyIdKey, policy.Id);
         activity?.SetTag(PolicyNameKey, policy.Name);
@@ -93,7 +93,7 @@ internal sealed class FlowRulesTelemetryService : IFlowRulesTelemetryService
     public Activity? StartActivity<T>(Rule<T> rule, Guid contextId, string correlationId)
         where T : class
     {
-        Activity? activity = PolicyActivitySource.StartActivity(RuleExecuteOperation);
+        Activity? activity = PolicyActivitySource.StartActivity(name: RuleExecuteOperation);
 
         activity?.SetTag(RuleIdKey, rule.Id);
         activity?.SetTag(RuleNameKey, rule.Name);

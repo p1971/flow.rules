@@ -72,7 +72,7 @@ CREATE TABLE [$(flowSchema)].[FlowRulesRequest]
 	[Id] INT IDENTITY(1,1) NOT NULL, 
     [FlowExecutionId] uniqueidentifier NOT NULL,     
     [CorrelationId] varchar(200) NOT NULL,     
-    [PolicyId] VARCHAR(20) NOT NULL, 
+    [PolicyId] NVARCHAR(200) NOT NULL, 
     [Request] NVARCHAR(MAX) NOT NULL,    
     [CreatedAt] DATETIME2 CONSTRAINT DF_FlowRulesRequest_CreatedAt DEFAULT SYSUTCDATETIME(),
     CONSTRAINT [PK_FlowRulesRequest] PRIMARY KEY CLUSTERED ([Id])
@@ -83,9 +83,9 @@ CREATE TABLE [$(flowSchema)].[FlowRulesPolicyResult]
 (
 	[Id] INT IDENTITY(1,1) NOT NULL, 
     [FlowRulesRequest_Id] INT NOT NULL,
-    [PolicyName] NVARCHAR(50) NOT NULL, 
+    [PolicyName] NVARCHAR(250) NOT NULL, 
     [Passed] BIT NOT NULL, 
-    [Version] VARCHAR(20) NULL,
+    [Version] NVARCHAR(100) NULL,
     [CreatedAt] DATETIME2 CONSTRAINT DF_FlowRulesPolicyResult_CreatedAt DEFAULT SYSUTCDATETIME(),
     CONSTRAINT [PK_FlowRulesPolicyResult] PRIMARY KEY CLUSTERED ([Id]),
     CONSTRAINT [FK_FlowRulesPolicyResult_FlowRulesRequest_Id] FOREIGN KEY (FlowRulesRequest_Id) REFERENCES [$(flowSchema)].[FlowRulesRequest]([Id])
@@ -96,9 +96,9 @@ CREATE TABLE [$(flowSchema)].[FlowRulesRuleResult]
 (
 	[Id] INT IDENTITY(1,1) NOT NULL, 
     [FlowRulesPolicyResult_Id] INT NOT NULL,
-    [RuleId] VARCHAR(20) NOT NULL,
-    [RuleName] VARCHAR(50) NOT NULL,
-    [RuleDescription] VARCHAR(250) NULL,
+    [RuleId] NVARCHAR(200) NOT NULL,
+    [RuleName] NVARCHAR(250) NOT NULL,
+    [RuleDescription] NVARCHAR(MAX) NULL,
     [Passed] BIT NOT NULL, 
     [Message] NVARCHAR(MAX) NULL,
     [Elapsed] TIME NOT NULL,
