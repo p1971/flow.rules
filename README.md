@@ -131,70 +131,80 @@ A rule is an assertion which must be true to pass.
 ### A simple dto to apply rules against
 
 ```csharp
-public record MortgageApplication(int ApplicantAge, string MortgageType, double LoanAmount, double PrincipalAmount);
+public record MortgageApplication(
+    int ApplicantAge,
+    string ProductType,
+    decimal PropertyValue,
+    decimal DepositAmount,
+    decimal GrossAnnualIncome,
+    decimal NetMonthlyIncome,
+    decimal CommittedMonthlyExpenditure,
+    decimal EssentialMonthlyExpenditure,
+    int Dependants,
+    int LoanTermYears,
+    int ExpectedRetirementAge,
+    decimal ProductRate,
+    decimal StressRate,
+    bool IncomeVerified,
+    bool ExpenditureVerified,
+    bool HasCredibleRepaymentStrategy = false,
+    decimal RepaymentStrategyMonthlyCost = 0)
+{
+    public decimal LoanAmount => PropertyValue - DepositAmount;
+}
 ```
 
 ### The rules policy
 
+The sample mortgage policy is an illustrative UK regulated residential lending policy. It uses lender policy limits for LTV/LTI and affordability stress checks, and avoids buy-to-let rental coverage or DSCR calculations.
+
 ```csharp
-public class PolicyBuilder 
+public static class PolicySetup
 {
-    public Policy<MortgageApplication> GetPolicy()
+    public static Policy<MortgageApplication> GetPolicy()
     {
-     Rule<MortgageApplication> validMortgageTypeRule = new(
-        "MA001",
-        "KnownMortgageType",
-        "Checks the mortgage type",
-        (r) => $"The {nameof(r.MortgageType)} [{r.MortgageType}] is not known.",
-        (request, token) =>
-        {
-            switch(request.MortgageType)
-            {
-                case "FTB":
-                    return ValueTask.FromResult(true);
-                default: 
-                    return ValueTask.FromResult(false);
-            }
-        });
+        return PolicyBuilder<MortgageApplication>.Create()
+            .WithId("P001")
+            .WithName("UKResidentialMortgagePolicy")
+            .WithDescription("Illustrative UK regulated residential mortgage lending policy.")
+            .WithVersion("2.0.0")
+            .WithRule(
+                "MA001",
+                "SupportedProductType",
+                (request, token) => ValueTask.FromResult(
+                    request.ProductType is "ResidentialRepayment" or "ResidentialInterestOnly"),
+                failureMessage: request => $"The product type [{request.ProductType}] is not supported.")
+            .WithRule(
+                "MA006",
+                "LoanToValue",
+                (request, token) => ValueTask.FromResult(
+                    request.LoanAmount / request.PropertyValue * 100 <= 90.0m),
+                failureMessage: request => $"LTV exceeds the sample product limit.")
+            .WithRule(
+                "MA007",
+                "LoanToIncome",
+                (request, token) => ValueTask.FromResult(
+                    request.LoanAmount / request.GrossAnnualIncome <= 4.50m),
+                failureMessage: request => $"LTI exceeds the sample lender limit.")
+            .WithRule(
+                "MA009",
+                "AffordabilityStress",
+                async (request, token) =>
+                {
+                    await Task.Delay(5, token);
+                    decimal stressRate = Math.Max(request.StressRate, request.ProductRate + 1.00m);
+                    decimal stressedPayment = request.LoanAmount * stressRate / 100 / 12;
+                    decimal monthlyOutgoings =
+                        request.CommittedMonthlyExpenditure
+                        + request.EssentialMonthlyExpenditure
+                        + stressedPayment;
 
-    Rule<MortgageApplication> ageLimitRule = new(
-        "MA002",
-        "MinAgeCheck",
-        "Minimum age of the applicant",
-        (r) => $"The {nameof(r.ApplicantAge)} [{r.ApplicantAge}] is too young.",
-        (request, token) =>
-        {
-            int minAgeForMortgage = 21;
-            return ValueTask.FromResult(request.ApplicantAge >= minAgeForMortgage);
-        });
-
-    Rule<MortgageApplication> lendersCanServiceLoanBasedOnLTVRule = new(
-        "MA005",
-        "LTV",
-        "Loan-To-Value Ratio must be above the minimum threshold for lenders to satisfy loan serviceability requirements",
-        (r) => {
-           double ltv = (r.LoanAmount - r.PrincipalAmount) / r.LoanAmount * 100;
-           return $"The LTV ratio [{ltv:F1}%] exceeds the maximum threshold. " +
-                  $"Either increase the principal {r.PrincipalAmount} or lower the loan amount {r.LoanAmount}.";
-         },
-         async (request, token) =>
-         {
-            await Task.Delay(20, token);
-            double ltv = (request.LoanAmount - request.PrincipalAmount) / request.LoanAmount * 100;
-            return ltv <= 95.0;
-         });
-
-    Policy<MortgageApplication> policy = new(
-        "P001",
-        "LoanPolicy",
-        "Simple loan policy",
-        new List<Rule<MortgageApplication>>
-        {
-            validMortgageTypeRule,
-            ageLimitRule,
-            lendersCanServiceLoanBasedOnLTVRule,
-        });
-       return policy;
+                    return request.IncomeVerified
+                        && request.ExpenditureVerified
+                        && request.NetMonthlyIncome - monthlyOutgoings >= 250m;
+                },
+                failureMessage: request => "Affordability stress failed.")
+            .Build();
     }
 }
 ```
@@ -208,9 +218,25 @@ serviceCollection.AddFlowRules<MortgageApplication>(() => policy);
 
 ServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
-IPolicyManager<MortgageApplication> policyManager = serviceProvider.GetService<IPolicyManager<MortgageApplication>>();
+IPolicyManager<MortgageApplication> policyManager =
+    serviceProvider.GetService<IPolicyManager<MortgageApplication>>();
 
-MortgageApplication testMortgage = new(21, "FTB", 500_000, 70_000);
+MortgageApplication testMortgage = new(
+    ApplicantAge: 35,
+    ProductType: "ResidentialRepayment",
+    PropertyValue: 350_000,
+    DepositAmount: 70_000,
+    GrossAnnualIncome: 85_000,
+    NetMonthlyIncome: 5_000,
+    CommittedMonthlyExpenditure: 300,
+    EssentialMonthlyExpenditure: 1_200,
+    Dependants: 1,
+    LoanTermYears: 30,
+    ExpectedRetirementAge: 68,
+    ProductRate: 5.00m,
+    StressRate: 6.25m,
+    IncomeVerified: true,
+    ExpenditureVerified: true);
 
 CancellationTokenSource cancellationTokenSource = new();
 CancellationToken cancellationToken = cancellationTokenSource.Token;
@@ -225,7 +251,7 @@ Results can be persisted via the `IPolicyResultsRepository<in T>` implementation
 The interface is fairly simple:
 
 ```csharp
-Task PersistResults(T request, PolicyExecutionResult policyExecutionResult);
+ValueTask PersistResults(T request, PolicyExecutionResult policyExecutionResult);
 ```
 
 Where `PolicyExecutionResult` contains the policy and individual rule results.

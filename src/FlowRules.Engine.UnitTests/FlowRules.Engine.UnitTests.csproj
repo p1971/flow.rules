@@ -21,6 +21,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\FlowRules.Engine\FlowRules.Engine.csproj" />
+        <ProjectReference Include="..\FlowRules.Samples.TestPolicy\FlowRules.Samples.TestPolicy.csproj" />
     </ItemGroup>
 
 </Project>
