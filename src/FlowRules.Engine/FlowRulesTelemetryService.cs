@@ -14,13 +14,17 @@ internal sealed class FlowRulesTelemetryService : IFlowRulesTelemetryService
     private const string PolicyNameKey = "policy.name";
     private const string RuleIdKey = "rule.id";
     private const string RuleNameKey = "rule.name";
-    private const string RuleFailKey = "rule.fail";
-    private const string CorrelationIdKey = "correlationId";
-    private const string ExecutionContextIdKey = "executionContextId";
+    private const string RuleFailKey           = "rule.fail";
+    private const string CorrelationIdKey      = "correlation.id";
+    private const string ExecutionContextIdKey = "execution.context.id";
 
-    private static readonly ActivitySource PolicyActivitySource = new("FlowRules.Policy");
+    // Stable operation names for span grouping in tracing backends (Jaeger, Grafana Tempo, etc.).
+    private const string PolicyExecuteOperation = "flowrules.policy.execute";
+    private const string RuleExecuteOperation   = "flowrules.rule.execute";
 
-    private static readonly Meter FlowMeter = new("FlowRules");
+    private static readonly ActivitySource PolicyActivitySource = new(FlowRulesTelemetry.ActivitySourceName);
+
+    private static readonly Meter FlowMeter = new(FlowRulesTelemetry.MeterName);
 
     private static readonly Histogram<double> PolicyHistogram;
     private static readonly Histogram<double> RuleHistogram;
@@ -28,12 +32,12 @@ internal sealed class FlowRulesTelemetryService : IFlowRulesTelemetryService
     static FlowRulesTelemetryService()
     {
         PolicyHistogram = FlowMeter.CreateHistogram<double>(
-            name: "policy.duration",
+            name: "flowrules.policy.duration",
             unit: "ms",
             description: "Policy execution elapsed time in milliseconds");
 
         RuleHistogram = FlowMeter.CreateHistogram<double>(
-            name: "policy.rule.duration",
+            name: "flowrules.rule.duration",
             unit: "ms",
             description: "Rule execution elapsed time in milliseconds");
     }
@@ -75,7 +79,7 @@ internal sealed class FlowRulesTelemetryService : IFlowRulesTelemetryService
     public Activity? StartActivity<T>(Policy<T> policy, Guid contextId, string correlationId)
         where T : class
     {
-        Activity? activity = PolicyActivitySource.StartActivity(policy.Name);
+        Activity? activity = PolicyActivitySource.StartActivity(name: PolicyExecuteOperation);
 
         activity?.SetTag(PolicyIdKey, policy.Id);
         activity?.SetTag(PolicyNameKey, policy.Name);
@@ -89,7 +93,7 @@ internal sealed class FlowRulesTelemetryService : IFlowRulesTelemetryService
     public Activity? StartActivity<T>(Rule<T> rule, Guid contextId, string correlationId)
         where T : class
     {
-        Activity? activity = PolicyActivitySource.StartActivity(rule.Name);
+        Activity? activity = PolicyActivitySource.StartActivity(name: RuleExecuteOperation);
 
         activity?.SetTag(RuleIdKey, rule.Id);
         activity?.SetTag(RuleNameKey, rule.Name);
@@ -99,11 +103,11 @@ internal sealed class FlowRulesTelemetryService : IFlowRulesTelemetryService
         return activity;
     }
 
-    public void SetSuccess(Activity? activity)
-    {
+    /// <inheritdoc/>
+    public void SetSuccess(Activity? activity) =>
         activity?.SetStatus(ActivityStatusCode.Ok);
-    }
 
+    /// <inheritdoc/>
     public void SetFailure(Activity? activity, string errorMessage)
     {
         activity?.SetStatus(ActivityStatusCode.Error);

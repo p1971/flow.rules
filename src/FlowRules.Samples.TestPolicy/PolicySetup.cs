@@ -1,181 +1,332 @@
-﻿using FlowRules.Engine;
+﻿using System.Globalization;
+
+using FlowRules.Engine;
 using FlowRules.Engine.Models;
 
 namespace FlowRules.Samples.TestPolicy;
 
 public static class PolicySetup
 {
+    private const string ProductRoot = "Products";
+    private const string PolicyRoot = "Policy";
+    private const string RepaymentProductType = "ResidentialRepayment";
+    private const string InterestOnlyProductType = "ResidentialInterestOnly";
+
     public static Policy<MortgageApplication> GetPolicy()
     {
-        NestedLookup<string, object>? lookup = GetLookups();
+        NestedLookup<string, object> lookup = GetLookups();
 
-        Rule<MortgageApplication> validMortgageTypeRule = new(
-            "MA001",
-            "KnownMortgageType",
-            "Checks the mortgage type",
-            (r) => $"The {nameof(r.MortgageType)} [{r.MortgageType}] is not known.",
-            async (request, token) =>
-            {
-                await Task.Delay(100, token);
+        return PolicyBuilder<MortgageApplication>.Create()
+            .WithId("P001")
+            .WithName("UKResidentialMortgagePolicy")
+            .WithDescription("Illustrative UK regulated residential mortgage lending policy.")
+            .WithVersion("2.0.0")
+            .WithRule(
+                "MA001",
+                "SupportedProductType",
+                Rule(async (request, token) =>
+                {
+                    await Task.Delay(5, token);
+                    return IsSupportedProductType(lookup, request);
+                }),
+                description: "Checks that the application is for a supported UK residential mortgage product.",
+                failureMessage: request => $"The product type [{request.ProductType}] is not supported. Supported types are [{RepaymentProductType}, {InterestOnlyProductType}].")
+            .WithRule(
+                "MA002",
+                "MinimumApplicantAge",
+                Rule(async (request, token) =>
+                {
+                    await Task.Delay(5, token);
+                    int minAge = lookup[PolicyRoot]["MinApplicantAge"];
+                    return request.ApplicantAge >= minAge;
+                }),
+                description: "Checks the applicant meets the sample lender minimum age.",
+                failureMessage: request =>
+                {
+                    int minAge = lookup[PolicyRoot]["MinApplicantAge"];
+                    return $"Applicant age [{request.ApplicantAge}] is below the sample lender minimum age [{minAge}].";
+                })
+            .WithRule(
+                "MA003",
+                "VerifiedIncomeAndExpenditure",
+                Rule(async (request, token) =>
+                {
+                    await Task.Delay(5, token);
+                    return request.IncomeVerified
+                        && request.ExpenditureVerified
+                        && request.GrossAnnualIncome > 0
+                        && request.NetMonthlyIncome > 0;
+                }),
+                description: "Checks that income and expenditure have been verified before affordability assessment.",
+                failureMessage: request =>
+                    $"Income verified [{request.IncomeVerified}], expenditure verified [{request.ExpenditureVerified}], gross annual income [GBP {Money(request.GrossAnnualIncome)}], net monthly income [GBP {Money(request.NetMonthlyIncome)}].")
+            .WithRule(
+                "MA004",
+                "TermWithinPolicy",
+                Rule(async (request, token) =>
+                {
+                    await Task.Delay(5, token);
+                    int minTermYears = lookup[PolicyRoot]["MinTermYears"];
+                    int maxTermYears = lookup[PolicyRoot]["MaxTermYears"];
+                    int ageAtEndOfTerm = request.ApplicantAge + request.LoanTermYears;
 
-                bool mortgageTypeIsKnown = lookup["Default"].IsDefined(request.MortgageType);
+                    return request.LoanTermYears >= minTermYears
+                        && request.LoanTermYears <= maxTermYears
+                        && request.ExpectedRetirementAge > request.ApplicantAge
+                        && ageAtEndOfTerm <= request.ExpectedRetirementAge;
+                }),
+                description: "Checks the mortgage term and whether it extends beyond the declared retirement age.",
+                failureMessage: request =>
+                {
+                    int minTermYears = lookup[PolicyRoot]["MinTermYears"];
+                    int maxTermYears = lookup[PolicyRoot]["MaxTermYears"];
+                    int ageAtEndOfTerm = request.ApplicantAge + request.LoanTermYears;
 
-                return mortgageTypeIsKnown;
-            });
+                    return $"Loan term [{request.LoanTermYears}] years must be between [{minTermYears}] and [{maxTermYears}] years and end by retirement age [{request.ExpectedRetirementAge}]. Applicant age at term end is [{ageAtEndOfTerm}].";
+                })
+            .WithRule(
+                "MA005",
+                "LoanAmountAndDeposit",
+                Rule(async (request, token) =>
+                {
+                    await Task.Delay(5, token);
 
-        Rule<MortgageApplication> ageLimitRule = new(
-            "MA002",
-            "MinAgeCheck",
-            "Minimum age of the applicant",
-            (r) => $"The {nameof(r.ApplicantAge)} [{r.ApplicantAge}] is too young.",
-            async (request, token) =>
-            {
-                await Task.Delay(50, token);
+                    if (request.PropertyValue <= 0 || request.DepositAmount <= 0 || request.LoanAmount <= 0)
+                    {
+                        return false;
+                    }
 
-                int minAgeForMortgage = lookup["Default"][request.MortgageType]["MinApplicantAge"];
+                    if (!IsSupportedProductType(lookup, request))
+                    {
+                        return true;
+                    }
 
-                return request.ApplicantAge >= minAgeForMortgage;
-            });
+                    decimal minLoanAmount = lookup[ProductRoot][request.ProductType]["MinLoanAmount"];
+                    decimal maxLoanAmount = lookup[ProductRoot][request.ProductType]["MaxLoanAmount"];
 
-        Rule<MortgageApplication> minLoanAmountRule = new(
-            "MA003",
-            "MinLoanAmount",
-            "minimum loan amount check",
-            (r) => $"The {nameof(r.LoanAmount)} [{r.LoanAmount}] is too small.",
-            async (request, token) =>
-            {
-                await Task.Delay(20, token);
-                int minLoanAmount = lookup["Default"][request.MortgageType]["MinLoan"];
-                return request.LoanAmount >= minLoanAmount;
-            });
+                    return request.LoanAmount >= minLoanAmount && request.LoanAmount <= maxLoanAmount;
+                }),
+                description: "Checks the deposit creates a positive loan amount within sample product limits.",
+                failureMessage: request =>
+                {
+                    decimal minLoanAmount = IsSupportedProductType(lookup, request)
+                        ? lookup[ProductRoot][request.ProductType]["MinLoanAmount"]
+                        : 0;
+                    decimal maxLoanAmount = IsSupportedProductType(lookup, request)
+                        ? lookup[ProductRoot][request.ProductType]["MaxLoanAmount"]
+                        : 0;
 
-        Rule<MortgageApplication> maxLoanAmountRule = new(
-            "MA004",
-            "MaxLoanAmount",
-            "Maximum loan amount check",
-            (r) => $"The {nameof(r.LoanAmount)} [{r.LoanAmount}] is too large.",
-            async (request, token) =>
-            {
-                await Task.Delay(20, token);
-                int maxLoanAmount = lookup["Default"][request.MortgageType]["MaxLoan"];
-                return request.LoanAmount <= maxLoanAmount;
-            });
+                    return $"Property value [GBP {Money(request.PropertyValue)}], deposit [GBP {Money(request.DepositAmount)}], and loan amount [GBP {Money(request.LoanAmount)}] must create a positive loan within the sample product range [GBP {Money(minLoanAmount)} - GBP {Money(maxLoanAmount)}].";
+                })
+            .WithRule(
+                "MA006",
+                "LoanToValue",
+                Rule(async (request, token) =>
+                {
+                    await Task.Delay(5, token);
 
-        Rule<MortgageApplication> lendersCanServiceLoanBasedOnLTVRule = new(
-            "MA005",
-            "LTV",
-            "Loan-To-Value Ratio must be above the minimum threshold for lenders to satisfy loan serviceability requirements",
-            (r) =>
-            {
-                double ltv = (r.LoanAmount - r.PrincipalAmount) / (double)r.LoanAmount * 100;
-                double minLTV = lookup["Default"][r.MortgageType]["MinLTV"];
+                    if (!IsSupportedProductType(lookup, request) || !CanCalculateLoanRatios(request))
+                    {
+                        return true;
+                    }
 
-                return $"The LTV ratio [{ltv}] is above the minimum threshold for the high-ltv loans [{minLTV}]. " +
-                       $"Either increase the principal {r.PrincipalAmount} or lower the loan amount {r.LoanAmount}";
-            },
-            async (request, token) =>
-            {
-                await Task.Delay(20, token);
-                double minLTV = lookup["Default"][request.MortgageType]["MinLTV"];
-                double ltv = (request.LoanAmount - request.PrincipalAmount) / (double)request.LoanAmount * 100;
-                return ltv <= minLTV;
-            });
+                    decimal ltv = CalculateLoanToValue(request);
+                    decimal maxLtv = lookup[ProductRoot][request.ProductType]["MaxLoanToValue"];
 
-        Rule<MortgageApplication> applicantCanSatisfyMonthlyLoanCommitmentsRule = new(
-            "MA006",
-            "DSR",
-            "Debt-To-Service Ratio must be below threshold so applicant can handle monthly loan commitments",
-            (r) =>
-            {
-                double interestRate = lookup["Default"][r.MortgageType]["InterestRateDSCR"];
-                int minDSR = lookup["Default"][r.MortgageType]["MinDSCR"];
-                double monthlyRepayment = monthlyRepayment = TotalPayment(interestRate, r.LoanTerm * 12, -r.LoanAmount);
-                double monthlyOutgoings = r.MonthlyHouseholdExpenses + monthlyRepayment + (0.02 * r.LoanAmount) / 12.0;
-                double dscr = (monthlyOutgoings - r.MonthlyLivingExpenses) / (r.GrossIncome / 12);
+                    return ltv <= maxLtv;
+                }),
+                description: "Checks loan-to-value against the sample product limit.",
+                failureMessage: request =>
+                {
+                    decimal ltv = CanCalculateLoanRatios(request) ? CalculateLoanToValue(request) : 0;
+                    decimal maxLtv = IsSupportedProductType(lookup, request)
+                        ? lookup[ProductRoot][request.ProductType]["MaxLoanToValue"]
+                        : 0;
 
-                return $"The DSCR ratio [{dscr}] is above the minimum threshold [{minDSR}]. " +
-                       $"Either increase applicant monthly salary or reduce applicant monthly expenditures";
-            },
-            async (request, token) =>
-            {
-                await Task.Delay(20, token);
-                double interestRate = lookup["Default"][request.MortgageType]["InterestRateDSCR"];
-                int minDSR = lookup["Default"][request.MortgageType]["MinDSCR"];
-                double monthlyRepayment = monthlyRepayment = TotalPayment(interestRate, request.LoanTerm * 12, -request.LoanAmount);
-                double monthlyOutgoings = request.MonthlyHouseholdExpenses + monthlyRepayment + (0.02 * request.LoanAmount) / 12.0;
-                double dsr = (monthlyOutgoings - request.MonthlyLivingExpenses) / (request.GrossIncome / 12);
-                return dsr <= minDSR;
-            });
+                    return $"LTV [{Percent(ltv)}] exceeds the sample product limit [{Percent(maxLtv)}].";
+                })
+            .WithRule(
+                "MA007",
+                "LoanToIncome",
+                Rule(async (request, token) =>
+                {
+                    await Task.Delay(5, token);
 
-        Policy<MortgageApplication> policy =
-            new(
-                "P001",
-                "LoanPolicy",
-                "Simple loan policy",
-                [
-                    validMortgageTypeRule,
-                    ageLimitRule,
-                    minLoanAmountRule,
-                    maxLoanAmountRule,
-                    lendersCanServiceLoanBasedOnLTVRule,
-                    applicantCanSatisfyMonthlyLoanCommitmentsRule
-                ]);
+                    if (!IsSupportedProductType(lookup, request) || request.GrossAnnualIncome <= 0 || request.LoanAmount <= 0)
+                    {
+                        return true;
+                    }
 
-        return policy;
+                    decimal lti = CalculateLoanToIncome(request);
+                    decimal maxLti = lookup[PolicyRoot]["MaxLoanToIncome"];
+
+                    return lti <= maxLti;
+                }),
+                description: "Checks loan-to-income against an illustrative sample lender cap.",
+                failureMessage: request =>
+                {
+                    decimal lti = request.GrossAnnualIncome > 0 ? CalculateLoanToIncome(request) : 0;
+                    decimal maxLti = lookup[PolicyRoot]["MaxLoanToIncome"];
+
+                    return $"LTI [{Ratio(lti)}] exceeds the sample lender limit [{Ratio(maxLti)}]. The UK high-LTI flow limit is a portfolio control, so this sample treats the threshold as lender policy.";
+                })
+            .WithRule(
+                "MA008",
+                "InterestOnlyRepaymentStrategy",
+                Rule(async (request, token) =>
+                {
+                    await Task.Delay(5, token);
+
+                    if (!IsInterestOnlyProduct(request))
+                    {
+                        return true;
+                    }
+
+                    return request.HasCredibleRepaymentStrategy && request.RepaymentStrategyMonthlyCost > 0;
+                }),
+                description: "Checks interest-only applications have a credible repayment strategy and monthly strategy cost.",
+                failureMessage: request =>
+                    $"Interest-only applications need a credible repayment strategy and strategy cost. Strategy present [{request.HasCredibleRepaymentStrategy}], monthly strategy cost [GBP {Money(request.RepaymentStrategyMonthlyCost)}].")
+            .WithRule(
+                "MA009",
+                "AffordabilityStress",
+                Rule(async (request, token) =>
+                {
+                    await Task.Delay(5, token);
+
+                    if (!CanAssessAffordability(lookup, request))
+                    {
+                        return true;
+                    }
+
+                    decimal minimumMonthlySurplus = lookup[PolicyRoot]["MinimumMonthlySurplus"];
+                    decimal surplus = CalculateMonthlySurplus(lookup, request);
+
+                    return surplus >= minimumMonthlySurplus;
+                }),
+                description: "Checks affordability using verified net income, committed expenditure, household costs, dependants, and a stressed mortgage payment.",
+                failureMessage: request =>
+                {
+                    decimal effectiveStressRate = CalculateEffectiveStressRate(lookup, request);
+                    decimal mortgagePayment = CalculateStressedMortgagePayment(lookup, request);
+                    decimal surplus = CalculateMonthlySurplus(lookup, request);
+                    decimal minimumMonthlySurplus = lookup[PolicyRoot]["MinimumMonthlySurplus"];
+
+                    return $"Affordability stress failed at [{Percent(effectiveStressRate)}]. Stressed monthly mortgage cost [GBP {Money(mortgagePayment)}], monthly surplus [GBP {Money(surplus)}], required surplus [GBP {Money(minimumMonthlySurplus)}].";
+                })
+            .Build();
     }
+
+    private static Func<MortgageApplication, CancellationToken, Task<bool>> Rule(
+        Func<MortgageApplication, CancellationToken, Task<bool>> source) => source;
 
     private static NestedLookup<string, object> GetLookups()
     {
-        List<(IEnumerable<string> Keys, object Value)> data = [
-                    // First Time Buyer rules
-                    (["Default", "FTB", "MinLoan"], 100_000),
-                    (["Default", "FTB", "MaxLoan"], 420_000),
-                    (["Default", "FTB", "MinApplicantAge"], 25),
-                    (["Default", "FTB", "MinLTV"], 95.0),
-                    (["Default", "FTB", "MinDSCR"], 50),
-                    (["Default", "FTB", "InterestRateDSCR"], 0.95),
-                    // Buy to Let rules
-                    (["Default", "BTL", "MinLoan"], 200_000),
-                    (["Default", "BTL", "MaxLoan"], 2_000_000),
-                    (["Default", "BTL", "MinApplicantAge"], 30),
-                    (["Default", "BTL", "MinLTV"], 75.0),
-                    (["Default", "BTL", "MinDSCR"], 50),
-                    (["Default", "BTL", "InterestRateDSCR"], 0.95),
+        List<(IEnumerable<string> Keys, object Value)> data =
+        [
+            (["Policy", "MinApplicantAge"], 18),
+            (["Policy", "MinTermYears"], 5),
+            (["Policy", "MaxTermYears"], 40),
+            (["Policy", "MinimumStressRateIncrease"], 1.0m),
+            (["Policy", "MinimumMonthlySurplus"], 250m),
+            (["Policy", "DependantMonthlyAllowance"], 250m),
+            (["Policy", "MaxLoanToIncome"], 4.50m),
+
+            (["Products", RepaymentProductType, "MinLoanAmount"], 25_000m),
+            (["Products", RepaymentProductType, "MaxLoanAmount"], 1_500_000m),
+            (["Products", RepaymentProductType, "MaxLoanToValue"], 90.0m),
+
+            (["Products", InterestOnlyProductType, "MinLoanAmount"], 50_000m),
+            (["Products", InterestOnlyProductType, "MaxLoanAmount"], 1_000_000m),
+            (["Products", InterestOnlyProductType, "MaxLoanToValue"], 75.0m),
         ];
 
-        NestedLookup<string, object> lookups = new(data);
-
-        return lookups;
+        return new NestedLookup<string, object>(data);
     }
 
-    private static double TotalPayment(double rate, double nPer, double pv, double fv = 0, bool isEndOfPeriod = false)
+    private static bool IsSupportedProductType(NestedLookup<string, object> lookup, MortgageApplication request) =>
+        !string.IsNullOrWhiteSpace(request.ProductType) && lookup[ProductRoot].IsDefined(request.ProductType);
+
+    private static bool IsInterestOnlyProduct(MortgageApplication request) =>
+        string.Equals(request.ProductType, InterestOnlyProductType, StringComparison.Ordinal);
+
+    private static bool CanCalculateLoanRatios(MortgageApplication request) =>
+        request.PropertyValue > 0 && request.LoanAmount > 0;
+
+    private static bool CanAssessAffordability(NestedLookup<string, object> lookup, MortgageApplication request) =>
+        IsSupportedProductType(lookup, request)
+        && CanCalculateLoanRatios(request)
+        && request.LoanTermYears > 0
+        && request.NetMonthlyIncome > 0
+        && request.IncomeVerified
+        && request.ExpenditureVerified
+        && (!IsInterestOnlyProduct(request) || request.HasCredibleRepaymentStrategy);
+
+    private static decimal CalculateLoanToValue(MortgageApplication request) =>
+        request.LoanAmount / request.PropertyValue * 100;
+
+    private static decimal CalculateLoanToIncome(MortgageApplication request) =>
+        request.LoanAmount / request.GrossAnnualIncome;
+
+    private static decimal CalculateEffectiveStressRate(NestedLookup<string, object> lookup, MortgageApplication request)
     {
-        if (nPer == 0.0)
-        {
-            throw new ArgumentException($"Invalid value for {nameof(nPer)}");
-        }
+        decimal minimumStressRateIncrease = lookup[PolicyRoot]["MinimumStressRateIncrease"];
+        decimal productRatePlusMinimumIncrease = request.ProductRate + minimumStressRateIncrease;
 
-        if (rate == 0.0)
-        {
-            return (-fv - pv) / nPer;
-        }
-        else
-        {
-            double adjustmentFactor;
-            if (!isEndOfPeriod)
-            {
-                adjustmentFactor = 1.0 + rate;
-            }
-            else
-            {
-                adjustmentFactor = 1.0;
-            }
-
-            double rateIncrement = rate + 1.0;
-
-            double compoundFactor = Math.Pow(rateIncrement, nPer);
-
-            return (-fv - pv * compoundFactor) / (adjustmentFactor * (compoundFactor - 1.0)) * rate;
-        }
+        return Math.Max(request.StressRate, productRatePlusMinimumIncrease);
     }
+
+    private static decimal CalculateStressedMortgagePayment(NestedLookup<string, object> lookup, MortgageApplication request)
+    {
+        decimal stressRate = CalculateEffectiveStressRate(lookup, request);
+
+        if (IsInterestOnlyProduct(request))
+        {
+            return (request.LoanAmount * stressRate / 100 / 12) + request.RepaymentStrategyMonthlyCost;
+        }
+
+        return CalculateMonthlyRepayment(stressRate, request.LoanTermYears * 12, request.LoanAmount);
+    }
+
+    private static decimal CalculateMonthlySurplus(NestedLookup<string, object> lookup, MortgageApplication request)
+    {
+        decimal dependantAllowance = lookup[PolicyRoot]["DependantMonthlyAllowance"];
+        decimal stressedMortgagePayment = CalculateStressedMortgagePayment(lookup, request);
+        decimal householdExpenditure =
+            request.CommittedMonthlyExpenditure
+            + request.EssentialMonthlyExpenditure
+            + (request.Dependants * dependantAllowance);
+
+        return request.NetMonthlyIncome - householdExpenditure - stressedMortgagePayment;
+    }
+
+    private static decimal CalculateMonthlyRepayment(decimal annualRatePercentage, int numberOfPayments, decimal loanAmount)
+    {
+        if (numberOfPayments <= 0)
+        {
+            return 0;
+        }
+
+        decimal monthlyRate = annualRatePercentage / 100 / 12;
+
+        if (monthlyRate == 0)
+        {
+            return loanAmount / numberOfPayments;
+        }
+
+        double rate = (double)monthlyRate;
+        double compoundFactor = Math.Pow(1 + rate, numberOfPayments);
+        double payment = (double)loanAmount * rate * compoundFactor / (compoundFactor - 1);
+
+        return (decimal)payment;
+    }
+
+    private static string Money(decimal value) =>
+        value.ToString("N2", CultureInfo.InvariantCulture);
+
+    private static string Percent(decimal value) =>
+        value.ToString("0.0", CultureInfo.InvariantCulture) + "%";
+
+    private static string Ratio(decimal value) =>
+        value.ToString("0.00", CultureInfo.InvariantCulture) + "x";
 }

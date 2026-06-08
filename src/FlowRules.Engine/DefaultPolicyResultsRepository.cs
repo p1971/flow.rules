@@ -6,12 +6,12 @@ using FlowRules.Engine.Models;
 namespace FlowRules.Engine;
 
 /// <inheritdoc />
-public class DefaultPolicyResultsRepository<T> : IPolicyResultsRepository<T>
+internal class DefaultPolicyResultsRepository<T> : IPolicyResultsRepository<T>
     where T : class
 {
     /// <inheritdoc />
-    public Task PersistResults(T request, PolicyExecutionResult policyExecutionResult)
+    public ValueTask PersistResults(T request, PolicyExecutionResult policyExecutionResult)
     {
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 }

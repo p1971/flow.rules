@@ -21,7 +21,7 @@ public interface IPolicyManager<in T>
     /// <param name="request">The request model to apply rules to.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task containing the <see cref="PolicyExecutionResult"/>.</returns>
-    Task<PolicyExecutionResult> Execute(
+    ValueTask<PolicyExecutionResult> Execute(
         string correlationId,
         Guid executionContextId,
         T request,
@@ -36,7 +36,7 @@ public interface IPolicyManager<in T>
     /// <param name="request">The request model to apply rules to.</param>
     /// <param name="cancellationToken">A cancellation token.</param>
     /// <returns>A task containing the <see cref="RuleExecutionResult"/>.</returns>
-    Task<RuleExecutionResult> Execute(
+    ValueTask<RuleExecutionResult> Execute(
         string ruleId,
         string correlationId,
         Guid executionContextId,

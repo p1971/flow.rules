@@ -1,4 +1,7 @@
-﻿using Xunit;
+﻿using System;
+using System.Collections.Generic;
+
+using Xunit;
 
 namespace FlowRules.Engine.UnitTests
 {
@@ -75,6 +78,140 @@ namespace FlowRules.Engine.UnitTests
             
             Assert.False(lookups["Default"].IsDefined("XXX"));
             Assert.True(lookups["Default"].IsDefined("BTL"));
+        }
+
+        [Fact]
+        public void IsDefined_ReturnsFalse_AfterReadingMissingKey()
+        {
+            NestedLookup<string, object> lookups = new(
+                [
+                    (["Default", "FTB", "MinLoan"], 100_000),
+                ]
+            );
+
+            _ = lookups["Default"]["FTB"]["NonExistentKey"];
+
+            Assert.False(lookups["Default"]["FTB"].IsDefined("NonExistentKey"));
+        }
+
+        [Fact]
+        public void MissingKey_ReturnsDefaultValue_WithoutThrowingException()
+        {
+            NestedLookup<string, object> lookups = new(
+                [
+                    (["Default", "FTB", "MinLoan"], 100_000),
+                ]
+            );
+
+            int result = lookups["Default"]["FTB"]["NonExistentKey"];
+
+            Assert.Equal(0, result);
+        }
+
+        [Fact]
+        public void IsDefined_ReturnsFalse_ForChainedMissingKeys()
+        {
+            NestedLookup<string, object> lookups = new(
+                [
+                    (["Default", "FTB", "MinLoan"], 100_000),
+                ]
+            );
+
+            _ = lookups["Default"]["Missing"]["Key"];
+
+            Assert.False(lookups["Default"].IsDefined("Missing"));
+        }
+
+        [Fact]
+        public void Constructor_Should_Throw_When_Items_IsNull()
+        {
+            IEnumerable<(IEnumerable<string> Keys, object Value)>? nullItems = null;
+            Assert.Throws<ArgumentNullException>(() => new NestedLookup<string, object>(nullItems!));
+        }
+
+        [Fact]
+        public void Constructor_Should_Throw_When_KeySequence_IsEmpty()
+        {
+            Assert.Throws<ArgumentException>(() => new NestedLookup<string, object>(
+                [([], 123)]
+            ));
+        }
+
+        [Fact]
+        public void Constructor_Should_Throw_When_Key_InSequence_IsNull()
+        {
+            Assert.Throws<ArgumentNullException>(() => new NestedLookup<string, object>(
+                [([null!], 123)]
+            ));
+        }
+
+        [Fact]
+        public void Indexer_Should_Throw_When_Key_IsNull()
+        {
+            NestedLookup<string, object> lookups = new(
+                [(["Key1"], 123)]
+            );
+
+            Assert.Throws<ArgumentNullException>(() => _ = lookups[null!]);
+        }
+
+        [Fact]
+        public void IsDefined_Should_Throw_When_Key_IsNull()
+        {
+            NestedLookup<string, object> lookups = new(
+                [(["Key1"], 123)]
+            );
+
+            Assert.Throws<ArgumentNullException>(() => lookups.IsDefined(null!));
+        }
+
+        [Fact]
+        public void ImplicitConversion_ToDouble_ReturnsExpectedValue()
+        {
+            NestedLookup<string, object> lookups = new(
+                [(["Key1"], 3.14)]
+            );
+
+            double result = lookups["Key1"];
+
+            Assert.Equal(3.14, result, precision: 10);
+        }
+
+        [Fact]
+        public void ImplicitConversion_ToDecimal_ReturnsExpectedValue()
+        {
+            NestedLookup<string, object> lookups = new(
+                [(["Key1"], 9.99m)]
+            );
+
+            decimal result = lookups["Key1"];
+
+            Assert.Equal(9.99m, result);
+        }
+
+        [Fact]
+        public void ImplicitConversion_ToBool_ReturnsExpectedValue()
+        {
+            NestedLookup<string, object> lookups = new(
+                [(["Key1"], true)]
+            );
+
+            bool result = lookups["Key1"];
+
+            Assert.True(result);
+        }
+
+        [Fact]
+        public void MissingKey_ReturnsCustomDefaultValue_FromFactory()
+        {
+            NestedLookup<string, int> lookups = new(
+                [(["Key1"], 100)],
+                defaultValueFactory: () => -1
+            );
+
+            int result = lookups["Missing"];
+
+            Assert.Equal(-1, result);
         }
     }
 }

@@ -19,6 +19,7 @@ public class PolicyBuilder<T>
     private string? _id;
     private string? _name;
     private string? _description;
+    private string? _version;
 
     /// <summary>
     /// Sets the Id of the policy.
@@ -54,17 +55,45 @@ public class PolicyBuilder<T>
     }
 
     /// <summary>
+    /// Sets the version of the policy.
+    /// </summary>
+    /// <param name="version">The version of the policy.</param>
+    /// <returns>The current instance of the <see cref="PolicyBuilder{T}"/>.</returns>
+    public PolicyBuilder<T> WithVersion(string version)
+    {
+        _version = version;
+        return this;
+    }
+
+    /// <summary>
     /// Adds a rule to the policy.
     /// </summary>
     /// <param name="id">The id of the rule.</param>
     /// <param name="name">The name of the rule.</param>
     /// <param name="source">The source of the rule.</param>
     /// <param name="description">A description associated with the rule.</param>
-    /// <param name="failureMessage">A failure message to emit if the rul fails.</param>
+    /// <param name="failureMessage">A failure message to emit if the rule fails.</param>
+    /// <returns>The current instance of the <see cref="PolicyBuilder{T}"/>.</returns>
+    public PolicyBuilder<T> WithRule(string id, string name, Func<T, CancellationToken, ValueTask<bool>> source, string? description = null, Func<T, string>? failureMessage = null)
+    {
+        _rules.Add(new Rule<T>(id, name, description, failureMessage, source));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a rule to the policy.
+    /// </summary>
+    /// <param name="id">The id of the rule.</param>
+    /// <param name="name">The name of the rule.</param>
+    /// <param name="source">The source of the rule.</param>
+    /// <param name="description">A description associated with the rule.</param>
+    /// <param name="failureMessage">A failure message to emit if the rule fails.</param>
     /// <returns>The current instance of the <see cref="PolicyBuilder{T}"/>.</returns>
     public PolicyBuilder<T> WithRule(string id, string name, Func<T, CancellationToken, Task<bool>> source, string? description = null, Func<T, string>? failureMessage = null)
     {
-        _rules.Add(new Rule<T>(id, name, description, failureMessage, source));
+        ArgumentNullException.ThrowIfNull(source);
+
+        _rules.Add(new Rule<T>(id, name, description, failureMessage, (model, token) => new ValueTask<bool>(source(model, token))));
         return this;
     }
 
@@ -89,6 +118,11 @@ public class PolicyBuilder<T>
             throw new InvalidOperationException("Policy Name must be set via WithName()");
         }
 
-        return new Policy<T>(_id!, _name!, _description, _rules);
+        if (_rules.Count == 0)
+        {
+            throw new InvalidOperationException("Policy must contain at least one rule via WithRule()");
+        }
+
+        return new Policy<T>(_id!, _name!, _description, _rules, _version);
     }
 }

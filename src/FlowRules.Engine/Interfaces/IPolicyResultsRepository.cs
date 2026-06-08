@@ -16,5 +16,5 @@ public interface IPolicyResultsRepository<in T>
     /// <param name="request">The request model.</param>
     /// <param name="policyExecutionResult">The results of running the policy.</param>
     /// <returns>A task.</returns>
-    Task PersistResults(T request, PolicyExecutionResult policyExecutionResult);
+    ValueTask PersistResults(T request, PolicyExecutionResult policyExecutionResult);
 }

@@ -10,6 +10,9 @@
     <Project Path="FlowRules.Samples.TestPolicy/FlowRules.Samples.TestPolicy.csproj" />
     <Project Path="FlowRules.Samples.WebApi/FlowRules.Samples.WebApi.csproj" />
   </Folder>
+  <Folder Name="/Benchmarks/">
+    <Project Path="FlowRules.Benchmarks/FlowRules.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path="../codecov.yml" />
     <File Path="../dependabot.yml" />

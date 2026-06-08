@@ -87,24 +87,17 @@ public class NestedLookup<TKey, TValue>
     /// Indexer for accessing an item in the dictionary.
     /// </summary>
     /// <param name="key">The key to index.</param>
-    /// <returns>The item or a default value.</returns>
+    /// <returns>The item or a default value. Does not create entries for missing keys.</returns>
     /// <exception cref="ArgumentNullException">An exception thrown if the key is null.</exception>
     public NestedLookup<TKey, TValue> this[TKey key]
     {
         get
         {
-            if (key == null)
-            {
-                throw new ArgumentNullException(nameof(key), "Key cannot be null.");
-            }
+            ArgumentNullException.ThrowIfNull(key, nameof(key));
 
-            if (!_data.TryGetValue(key, out NestedLookup<TKey, TValue>? nested))
-            {
-                nested = new NestedLookup<TKey, TValue>(_defaultValueFactory);
-                _data[key] = nested;
-            }
-
-            return nested;
+            return _data.TryGetValue(key, out NestedLookup<TKey, TValue>? nested)
+                ? nested
+                : new NestedLookup<TKey, TValue>(_defaultValueFactory);
         }
     }
 
@@ -158,7 +151,13 @@ public class NestedLookup<TKey, TValue>
                 throw new ArgumentNullException(nameof(keys), "One of the keys is null.");
             }
 
-            current = current[key];
+            if (!current._data.TryGetValue(key, out NestedLookup<TKey, TValue>? nested))
+            {
+                nested = new NestedLookup<TKey, TValue>(_defaultValueFactory);
+                current._data[key] = nested;
+            }
+
+            current = nested;
         }
 
         current.SetValue(value);

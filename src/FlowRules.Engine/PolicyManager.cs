@@ -13,14 +13,20 @@ using Microsoft.Extensions.Logging;
 namespace FlowRules.Engine;
 
 /// <inheritdoc />
-public class PolicyManager<T>(Policy<T> policy, IPolicyResultsRepository<T> resultsRepository, IFlowRulesTelemetryService flowRulesEventCounterSource, ILogger<PolicyManager<T>> logger) : IPolicyManager<T>
-    where T : class
+internal class PolicyManager<T>(
+    Policy<T> policy,
+    IPolicyResultsRepository<T> resultsRepository,
+    IFlowRulesTelemetryService flowRulesEventCounterSource,
+    ILogger<PolicyManager<T>> logger) : IPolicyManager<T>
+        where T : class
 {
     private readonly Lazy<Dictionary<string, Rule<T>>> _rulesByIdCache =
         new(() => policy.Rules.ToDictionary(r => r.Id));
 
+    private readonly bool _persistResults = resultsRepository is not DefaultPolicyResultsRepository<T>;
+
     /// <inheritdoc />
-    public async Task<PolicyExecutionResult> Execute(
+    public async ValueTask<PolicyExecutionResult> Execute(
         string correlationId,
         Guid executionContextId,
         T request,
@@ -30,7 +36,18 @@ public class PolicyManager<T>(Policy<T> policy, IPolicyResultsRepository<T> resu
 
         long startTime = TimeProvider.System.GetTimestamp();
 
-        IList<RuleExecutionResult> response = await Execute(executionContextId, correlationId, request, cancellationToken);
+        RuleExecutionResult[] response = await Execute(executionContextId, correlationId, request, cancellationToken);
+
+        bool passed = true;
+
+        foreach (RuleExecutionResult ruleExecutionResult in response)
+        {
+            if (!ruleExecutionResult.Passed)
+            {
+                passed = false;
+                break;
+            }
+        }
 
         PolicyExecutionResult policyExecutionResult =
             new()
@@ -39,12 +56,15 @@ public class PolicyManager<T>(Policy<T> policy, IPolicyResultsRepository<T> resu
                 CorrelationId = correlationId,
                 PolicyId = policy.Id,
                 PolicyName = policy.Name,
-                Version = policy.GetType().Assembly.GetName().Version?.ToString(4),
-                RuleExecutionResults = [.. response],
-                Passed = response.All(r => r.Passed)
+                Version = policy.Version,
+                RuleExecutionResults = response,
+                Passed = passed
             };
 
-        await TryPersistResults(request, policyExecutionResult);
+        if (_persistResults)
+        {
+            await TryPersistResults(request, policyExecutionResult);
+        }
 
         flowRulesEventCounterSource.PolicyExecution<T>(
             policy,
@@ -56,7 +76,7 @@ public class PolicyManager<T>(Policy<T> policy, IPolicyResultsRepository<T> resu
     }
 
     /// <inheritdoc />
-    public async Task<RuleExecutionResult> Execute(
+    public async ValueTask<RuleExecutionResult> Execute(
         string ruleId,
         string correlationId,
         Guid executionContextId,
@@ -72,7 +92,7 @@ public class PolicyManager<T>(Policy<T> policy, IPolicyResultsRepository<T> resu
         return await ExecuteRule(rule, executionContextId, correlationId, request, cancellationToken);
     }
 
-    private async Task TryPersistResults(T request, PolicyExecutionResult policyExecutionResult)
+    private async ValueTask TryPersistResults(T request, PolicyExecutionResult policyExecutionResult)
     {
         try
         {
@@ -84,26 +104,25 @@ public class PolicyManager<T>(Policy<T> policy, IPolicyResultsRepository<T> resu
         }
     }
 
-    private async Task<IList<RuleExecutionResult>> Execute(
+    private async ValueTask<RuleExecutionResult[]> Execute(
         Guid executionContextId,
         string correlationId,
         T request,
         CancellationToken cancellationToken)
     {
-        List<RuleExecutionResult> ruleExecutionResults = [];
+        RuleExecutionResult[] ruleExecutionResults = new RuleExecutionResult[policy.Rules.Count];
 
         using Activity? activity = flowRulesEventCounterSource.StartActivity(policy, executionContextId, correlationId);
 
-        foreach (Rule<T> rule in policy.Rules)
+        for (int index = 0; index < policy.Rules.Count; index++)
         {
-            RuleExecutionResult response = await ExecuteRule(rule, executionContextId, correlationId, request, cancellationToken);
-            ruleExecutionResults.Add(response);
+            ruleExecutionResults[index] = await ExecuteRule(policy.Rules[index], executionContextId, correlationId, request, cancellationToken);
         }
 
         return ruleExecutionResults;
     }
 
-    private async Task<RuleExecutionResult> ExecuteRule(
+    private async ValueTask<RuleExecutionResult> ExecuteRule(
         Rule<T> rule,
         Guid executionContextId,
         string correlationId,
@@ -112,47 +131,57 @@ public class PolicyManager<T>(Policy<T> policy, IPolicyResultsRepository<T> resu
     {
         logger.LogExecutionPolicy(rule.Id, rule.Name, executionContextId);
 
-        RuleExecutionResultBuilder ruleExecutionResultBuilder = new(rule.Id, rule.Name, rule.Description);
-
         long stampStart = TimeProvider.System.GetTimestamp();
+        bool passed = false;
+        string? message = null;
+        Exception? exception = null;
+        TimeSpan elapsed;
 
         using Activity? activity = flowRulesEventCounterSource.StartActivity(rule, executionContextId, correlationId);
 
         try
         {
-            bool passed = await rule.Source.Invoke(request, cancellationToken);
+            ValueTask<bool> ruleExecution = rule.Source.Invoke(request, cancellationToken);
+            passed = ruleExecution.IsCompletedSuccessfully
+                ? ruleExecution.Result
+                : await ruleExecution;
 
             if (passed)
             {
-                ruleExecutionResultBuilder.WithSuccess();
                 flowRulesEventCounterSource.SetSuccess(activity);
             }
             else
             {
-                string failureMsg = rule.FailureMessage?.Invoke(request) ?? string.Empty;
-                flowRulesEventCounterSource.SetFailure(activity, failureMsg);
-                ruleExecutionResultBuilder.WithFailure(failureMsg);
+                message = rule.FailureMessage?.Invoke(request) ?? string.Empty;
+                flowRulesEventCounterSource.SetFailure(activity, message);
             }
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
-            ruleExecutionResultBuilder.WithCancellation();
+            message = "Rule execution was cancelled.";
             flowRulesEventCounterSource.SetFailure(activity, "cancelled");
             logger.LogRuleCancelled(rule.Id, rule.Name);
         }
         catch (Exception ex)
         {
-            ruleExecutionResultBuilder.WithException(ex);
-            flowRulesEventCounterSource.SetFailure(activity, ex.Message);
+            exception = ex;
+            message = ex.Message;
+            flowRulesEventCounterSource.SetFailure(activity, message);
             logger.LogExceptionForRule(ex, rule.Id, rule.Name);
         }
         finally
         {
-            TimeSpan elapsed = TimeProvider.System.GetElapsedTime(stampStart);
-            ruleExecutionResultBuilder.WithTime(elapsed);
+            elapsed = TimeProvider.System.GetElapsedTime(stampStart);
             flowRulesEventCounterSource.RuleExecution<T>(policy, rule, executionContextId, correlationId, elapsed);
         }
 
-        return ruleExecutionResultBuilder.ToRuleExecutionResult();
+        return new RuleExecutionResult(
+            rule.Id,
+            rule.Name,
+            passed,
+            elapsed,
+            rule.Description,
+            message,
+            exception);
     }
 }
