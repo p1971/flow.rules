@@ -36,21 +36,21 @@ public class Rule<T>(string id, string name, string? description, Func<T, string
     /// </summary>
     public Func<T, CancellationToken, ValueTask<bool>> Source { get; } = ValidateSource(source);
 
-    private static string ValidateId(string value)
+    private static string ValidateId(string id)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(id));
-        return value;
+        ArgumentException.ThrowIfNullOrWhiteSpace(id, nameof(id));
+        return id;
     }
 
-    private static string ValidateName(string value)
+    private static string ValidateName(string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(name));
-        return value;
+        ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
+        return name;
     }
 
-    private static Func<T, CancellationToken, ValueTask<bool>> ValidateSource(Func<T, CancellationToken, ValueTask<bool>> value)
+    private static Func<T, CancellationToken, ValueTask<bool>> ValidateSource(Func<T, CancellationToken, ValueTask<bool>> source)
     {
-        ArgumentNullException.ThrowIfNull(value, nameof(source));
-        return value;
+        ArgumentNullException.ThrowIfNull(source, nameof(source));
+        return source;
     }
 }

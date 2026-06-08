@@ -36,28 +36,28 @@ public class Policy<T>(string id, string name, string? description, IList<Rule<T
     /// </summary>
     public IReadOnlyList<Rule<T>> Rules { get; } = ValidateRules(rules);
 
-    private static string ValidateId(string value)
+    private static string ValidateId(string id)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(id));
-        return value;
+        ArgumentException.ThrowIfNullOrWhiteSpace(id, nameof(id));
+        return id;
     }
 
-    private static string ValidateName(string value)
+    private static string ValidateName(string name)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(value, nameof(name));
-        return value;
+        ArgumentException.ThrowIfNullOrWhiteSpace(name, nameof(name));
+        return name;
     }
 
-    private static IReadOnlyList<Rule<T>> ValidateRules(IList<Rule<T>> value)
+    private static IReadOnlyList<Rule<T>> ValidateRules(IList<Rule<T>> rules)
     {
-        ArgumentNullException.ThrowIfNull(value);
+        ArgumentNullException.ThrowIfNull(rules);
 
-        if (value.Count == 0)
+        if (rules.Count == 0)
         {
             throw new ArgumentException("A policy must contain at least one rule.", nameof(rules));
         }
 
-        List<Rule<T>> rulesSnapshot = [.. value];
+        List<Rule<T>> rulesSnapshot = [.. rules];
 
         Rule<T>? duplicateRule = rulesSnapshot
             .GroupBy(rule => rule.Id, StringComparer.Ordinal)

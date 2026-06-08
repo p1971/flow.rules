@@ -84,7 +84,7 @@ public static class Extensions
             {
                 builder.Services.ConfigureOpenTelemetryMeterProvider(metrics => metrics.AddOtlpExporter());
                 builder.Services.ConfigureOpenTelemetryTracerProvider(tracing => tracing.AddOtlpExporter());
-                builder.Logging.AddOpenTelemetry(logging => logging.AddOtlpExporter());
+                builder.Services.Configure<OpenTelemetryLoggerOptions>(logging => logging.AddOtlpExporter());
             }
 
             return builder;

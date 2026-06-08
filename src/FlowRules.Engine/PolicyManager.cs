@@ -156,7 +156,7 @@ internal class PolicyManager<T>(
                 flowRulesEventCounterSource.SetFailure(activity, message);
             }
         }
-        catch (TaskCanceledException)
+        catch (OperationCanceledException)
         {
             message = "Rule execution was cancelled.";
             flowRulesEventCounterSource.SetFailure(activity, "cancelled");
