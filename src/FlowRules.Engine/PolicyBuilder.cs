@@ -72,7 +72,7 @@ public class PolicyBuilder<T>
     /// <param name="name">The name of the rule.</param>
     /// <param name="source">The source of the rule.</param>
     /// <param name="description">A description associated with the rule.</param>
-    /// <param name="failureMessage">A failure message to emit if the rul fails.</param>
+    /// <param name="failureMessage">A failure message to emit if the rule fails.</param>
     /// <returns>The current instance of the <see cref="PolicyBuilder{T}"/>.</returns>
     public PolicyBuilder<T> WithRule(string id, string name, Func<T, CancellationToken, ValueTask<bool>> source, string? description = null, Func<T, string>? failureMessage = null)
     {
@@ -87,7 +87,7 @@ public class PolicyBuilder<T>
     /// <param name="name">The name of the rule.</param>
     /// <param name="source">The source of the rule.</param>
     /// <param name="description">A description associated with the rule.</param>
-    /// <param name="failureMessage">A failure message to emit if the rul fails.</param>
+    /// <param name="failureMessage">A failure message to emit if the rule fails.</param>
     /// <returns>The current instance of the <see cref="PolicyBuilder{T}"/>.</returns>
     public PolicyBuilder<T> WithRule(string id, string name, Func<T, CancellationToken, Task<bool>> source, string? description = null, Func<T, string>? failureMessage = null)
     {

@@ -18,7 +18,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development",
         "OTEL_SERVICE_NAME": "flow-rules",
-        "OTEL_EXPORTER_OTLP_ENDPOINT": "http://192.168.1.6:4318",
+        "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:4318",
         "OTEL_EXPORTER_OTLP_PROTOCOL": "http/protobuf"
       }
     }

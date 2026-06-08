@@ -34,8 +34,8 @@ public static partial class Program
 
         ServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
 
-        ILogger<MortgageApplication> logger = serviceProvider.GetService<ILogger<MortgageApplication>>()!;
-        IPolicyManager<MortgageApplication> policyManager = serviceProvider.GetService<IPolicyManager<MortgageApplication>>()!;
+        ILogger<MortgageApplication> logger = serviceProvider.GetRequiredService<ILogger<MortgageApplication>>();
+        IPolicyManager<MortgageApplication> policyManager = serviceProvider.GetRequiredService<IPolicyManager<MortgageApplication>>();
 
         CancellationTokenSource cancellationTokenSource = new();
         CancellationToken cancellationToken = cancellationTokenSource.Token;
