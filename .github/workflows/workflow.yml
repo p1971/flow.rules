@@ -35,10 +35,25 @@ jobs:
       run: dotnet clean src
 
     - name: dotnet build
-      run: dotnet build src/FlowRules.slnx --configuration ${{ env.BuildConfiguration }} /p:Version=${{ steps.gitversion.outputs.AssemblySemVer }};AssemblyFileVersion=${{ steps.gitversion.outputs.AssemblySemVer }};AssemblyVersion=${{ steps.gitversion.outputs.AssemblySemVer }};AssemblyInformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }}
+      run: dotnet build src/FlowRules.slnx --configuration ${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.AssemblySemVer }} -p:AssemblyFileVersion=${{ steps.gitversion.outputs.AssemblySemVer }} -p:AssemblyVersion=${{ steps.gitversion.outputs.AssemblySemVer }} -p:AssemblyInformationalVersion=${{ steps.gitversion.outputs.InformationalVersion }}
 
     - name: dotnet test 
       run: dotnet test src --logger:"trx;LogFileName=TestResults.xml" --filter Category!=Extension --no-build /p:CollectCoverage=true /p:CoverletOutputFormat=opencover --configuration ${{ env.BuildConfiguration }} 
+
+    - name: Resolve package version
+      id: package_version
+      shell: bash
+      run: |
+            if [[ "${GITHUB_REF}" == "refs/heads/main" ]]; then
+              version="${{ steps.gitversion.outputs.MajorMinorPatch }}"
+            else
+              version="${{ steps.gitversion.outputs.FullSemVer }}"
+              version="${version%%+*}"
+              if [[ "$version" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-([0-9]+)$ ]]; then
+                version="${BASH_REMATCH[1]}-ci.${BASH_REMATCH[2]}"
+              fi
+            fi
+            echo "version=$version" >> "$GITHUB_OUTPUT"
 
     - name: Test Report
       uses: dorny/test-reporter@v1
@@ -58,11 +73,11 @@ jobs:
 
     - name: nuget packaging
       run: |
-            dotnet pack src/FlowRules.Engine/FlowRules.Engine.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath }} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.FullSemVer }};SymbolPackageFormat=snupkg            
-            dotnet pack src/FlowRules.Extensions.SqlServer/FlowRules.Extensions.SqlServer.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath }} -p:Configuration=${{ env.BuildConfiguration }} -p:Version=${{ steps.gitversion.outputs.FullSemVer }};SymbolPackageFormat=snupkg
-            echo "VERSION=${{ steps.gitversion.outputs.FullSemVer }}" >> $GITHUB_ENV
+            dotnet pack src/FlowRules.Engine/FlowRules.Engine.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath }} -p:Configuration=${{ env.BuildConfiguration }} -p:PackageVersion=${{ steps.package_version.outputs.version }} -p:SymbolPackageFormat=snupkg
+            dotnet pack src/FlowRules.Extensions.SqlServer/FlowRules.Extensions.SqlServer.csproj --no-build --include-symbols -o ${{ env.NugetPackagePath }} -p:Configuration=${{ env.BuildConfiguration }} -p:PackageVersion=${{ steps.package_version.outputs.version }} -p:SymbolPackageFormat=snupkg
+            echo "VERSION=${{ steps.package_version.outputs.version }}" >> $GITHUB_ENV
             ls ${{ env.NugetPackagePath }}/*
-            echo "${{ steps.gitversion.outputs.FullSemVer }}" > ${{ env.NugetPackagePath }}/version.txt
+            echo "${{ steps.package_version.outputs.version }}" > ${{ env.NugetPackagePath }}/version.txt
 
     - name: Setup nuget.exe
       uses: nuget/setup-nuget@v2
