@@ -1,60 +1,189 @@
 @traceId = {{$guid}}
 @parentId = {{$guid}}
 
-### All Pass
+### Standard repayment mortgage passes
 POST http://localhost:5014/_execute
 Content-Type: application/json
 traceparent: 00-{{traceId}}-{{parentId}}-01
 tracestate: env=dev
 
 {
-    "ApplicantAge": 30,
-    "MortgageType": "FTB",
-    "LoanAmount": 400000,
-    "PrincipalAmount": 50000,
-    "GrossIncome" : 100000, 
-    "MonthlyLivingExpenses": 1000, 
-    "MonthlyHouseholdExpenses": 2000    
+    "ApplicantAge": 35,
+    "ProductType": "ResidentialRepayment",
+    "PropertyValue": 350000,
+    "DepositAmount": 70000,
+    "GrossAnnualIncome": 85000,
+    "NetMonthlyIncome": 5000,
+    "CommittedMonthlyExpenditure": 300,
+    "EssentialMonthlyExpenditure": 1200,
+    "Dependants": 1,
+    "LoanTermYears": 30,
+    "ExpectedRetirementAge": 68,
+    "ProductRate": 5.0,
+    "StressRate": 6.25,
+    "IncomeVerified": true,
+    "ExpenditureVerified": true
 }
-### Fails LTV & DSR test
+
+### Unsupported product fails
 POST http://localhost:5014/_execute
 Content-Type: application/json
 traceparent: 00-{{traceId}}-{{parentId}}-01
 
 {
-    "ApplicantAge": 30,
-    "MortgageType": "FTB",
-    "LoanAmount": 400000,
-    "PrincipalAmount": 10000,
-    "GrossIncome" : 50000, 
-    "MonthlyLivingExpenses": 1000, 
-    "MonthlyHouseholdExpenses": 2000
+    "ApplicantAge": 35,
+    "ProductType": "OffsetTracker",
+    "PropertyValue": 350000,
+    "DepositAmount": 70000,
+    "GrossAnnualIncome": 85000,
+    "NetMonthlyIncome": 5000,
+    "CommittedMonthlyExpenditure": 300,
+    "EssentialMonthlyExpenditure": 1200,
+    "Dependants": 1,
+    "LoanTermYears": 30,
+    "ExpectedRetirementAge": 68,
+    "ProductRate": 5.0,
+    "StressRate": 6.25,
+    "IncomeVerified": true,
+    "ExpenditureVerified": true
 }
-### Fails LTV test
+
+### High LTV fails
 POST http://localhost:5014/_execute
 Content-Type: application/json
 traceparent: 00-{{traceId}}-{{parentId}}-01
 
 {
-    "ApplicantAge": 30,
-    "MortgageType": "FTB",
-    "LoanAmount": 400000,
-    "PrincipalAmount": 10000,
-    "GrossIncome" : 100000, 
-    "MonthlyLivingExpenses": 1000, 
-    "MonthlyHouseholdExpenses": 2000    
+    "ApplicantAge": 35,
+    "ProductType": "ResidentialRepayment",
+    "PropertyValue": 350000,
+    "DepositAmount": 20000,
+    "GrossAnnualIncome": 85000,
+    "NetMonthlyIncome": 5000,
+    "CommittedMonthlyExpenditure": 300,
+    "EssentialMonthlyExpenditure": 1200,
+    "Dependants": 1,
+    "LoanTermYears": 30,
+    "ExpectedRetirementAge": 68,
+    "ProductRate": 5.0,
+    "StressRate": 6.25,
+    "IncomeVerified": true,
+    "ExpenditureVerified": true
 }
-### Fails DSR test
+
+### High LTI fails
 POST http://localhost:5014/_execute
 Content-Type: application/json
 traceparent: 00-{{traceId}}-{{parentId}}-01
 
 {
-    "ApplicantAge": 30,
-    "MortgageType": "FTB",
-    "LoanAmount": 400000,
-    "PrincipalAmount": 50000,
-    "GrossIncome" : 50000, 
-    "MonthlyLivingExpenses": 1000, 
-    "MonthlyHouseholdExpenses": 2000    
+    "ApplicantAge": 35,
+    "ProductType": "ResidentialRepayment",
+    "PropertyValue": 600000,
+    "DepositAmount": 100000,
+    "GrossAnnualIncome": 90000,
+    "NetMonthlyIncome": 7000,
+    "CommittedMonthlyExpenditure": 100,
+    "EssentialMonthlyExpenditure": 1000,
+    "Dependants": 0,
+    "LoanTermYears": 30,
+    "ExpectedRetirementAge": 68,
+    "ProductRate": 5.0,
+    "StressRate": 6.25,
+    "IncomeVerified": true,
+    "ExpenditureVerified": true
+}
+
+### Affordability stress fails
+POST http://localhost:5014/_execute
+Content-Type: application/json
+traceparent: 00-{{traceId}}-{{parentId}}-01
+
+{
+    "ApplicantAge": 35,
+    "ProductType": "ResidentialRepayment",
+    "PropertyValue": 350000,
+    "DepositAmount": 70000,
+    "GrossAnnualIncome": 85000,
+    "NetMonthlyIncome": 3600,
+    "CommittedMonthlyExpenditure": 300,
+    "EssentialMonthlyExpenditure": 1200,
+    "Dependants": 1,
+    "LoanTermYears": 30,
+    "ExpectedRetirementAge": 68,
+    "ProductRate": 5.0,
+    "StressRate": 6.25,
+    "IncomeVerified": true,
+    "ExpenditureVerified": true
+}
+
+### Term past retirement assumption fails
+POST http://localhost:5014/_execute
+Content-Type: application/json
+traceparent: 00-{{traceId}}-{{parentId}}-01
+
+{
+    "ApplicantAge": 40,
+    "ProductType": "ResidentialRepayment",
+    "PropertyValue": 350000,
+    "DepositAmount": 70000,
+    "GrossAnnualIncome": 85000,
+    "NetMonthlyIncome": 5000,
+    "CommittedMonthlyExpenditure": 300,
+    "EssentialMonthlyExpenditure": 1200,
+    "Dependants": 1,
+    "LoanTermYears": 35,
+    "ExpectedRetirementAge": 68,
+    "ProductRate": 5.0,
+    "StressRate": 6.25,
+    "IncomeVerified": true,
+    "ExpenditureVerified": true
+}
+
+### Interest-only without repayment strategy fails
+POST http://localhost:5014/_execute
+Content-Type: application/json
+traceparent: 00-{{traceId}}-{{parentId}}-01
+
+{
+    "ApplicantAge": 45,
+    "ProductType": "ResidentialInterestOnly",
+    "PropertyValue": 600000,
+    "DepositAmount": 180000,
+    "GrossAnnualIncome": 120000,
+    "NetMonthlyIncome": 6500,
+    "CommittedMonthlyExpenditure": 500,
+    "EssentialMonthlyExpenditure": 1800,
+    "Dependants": 0,
+    "LoanTermYears": 20,
+    "ExpectedRetirementAge": 70,
+    "ProductRate": 5.5,
+    "StressRate": 6.5,
+    "IncomeVerified": true,
+    "ExpenditureVerified": true,
+    "HasCredibleRepaymentStrategy": false,
+    "RepaymentStrategyMonthlyCost": 0
+}
+
+### Multiple failures
+POST http://localhost:5014/_execute
+Content-Type: application/json
+traceparent: 00-{{traceId}}-{{parentId}}-01
+
+{
+    "ApplicantAge": 17,
+    "ProductType": "ResidentialRepayment",
+    "PropertyValue": 350000,
+    "DepositAmount": 10000,
+    "GrossAnnualIncome": 50000,
+    "NetMonthlyIncome": 2600,
+    "CommittedMonthlyExpenditure": 300,
+    "EssentialMonthlyExpenditure": 1200,
+    "Dependants": 1,
+    "LoanTermYears": 55,
+    "ExpectedRetirementAge": 68,
+    "ProductRate": 5.0,
+    "StressRate": 6.25,
+    "IncomeVerified": true,
+    "ExpenditureVerified": true
 }
