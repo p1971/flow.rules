@@ -4,10 +4,9 @@ A simple rules implementation for dotnet. Intended for use within a microservice
 
 ## CI
 
-| Project | Build (main) |  Build (develop) |
-|---------|-------|-------|
-| [FlowRules](https://github.com/p1971/flow.rules.engine) | [![master](https://github.com/p1971/flow.rules/actions/workflows/workflow.yml/badge.svg?branch=master)](https://github.com/p1971/flow.rules/actions/workflows/workflow.yml) |  [![develop](https://github.com/p1971/flow.rules/actions/workflows/workflow.yml/badge.svg?branch=develop)](https://github.com/p1971/flow.rules/actions/workflows/workflow.yml) |
-
+| Project | Build (main) | Build (develop) |
+| ------- | ----- | ----- |
+| [FlowRules](https://github.com/p1971/flow.rules.engine) | [![flowrules_build](https://github.com/p1971/flow.rules/actions/workflows/workflow.yml/badge.svg?branch=main)](https://github.com/p1971/flow.rules/actions/workflows/workflow.yml) | [![flowrules_build](https://github.com/p1971/flow.rules/actions/workflows/workflow.yml/badge.svg?branch=develop)](https://github.com/p1971/flow.rules/actions/workflows/workflow.yml) |
 
 ## Testing
 
@@ -20,7 +19,7 @@ Packages from feature and develop branches are available on [github](https://git
 Release and symbol packages are available on [nuget.org](https://www.nuget.org/packages/FlowRules.Engine).
 
 | Nuget | Description | Nuget |
-| ------| ------- | ------ |
+| ----- | ------- | ------ |
 | FlowRules.Engine | Core engine | [![nuget](https://img.shields.io/nuget/v/FlowRules.Engine.svg)](https://www.nuget.org/packages/FlowRules.Engine) |
 | FlowRules.Extensions.SqlServer | Sql server support | [![nuget](https://img.shields.io/nuget/v/FlowRules.Extensions.SqlServer.svg)](https://www.nuget.org/packages/FlowRules.Extensions.SqlServer) |
 
@@ -110,23 +109,23 @@ flowchart TD
 
 A policy is a collection of rules.
 
-| Name           | Description                                 | Example             |
-| -------------- | ------------------------------------------- | ------------------- |
-| Id             | A unique identifier for the policy.         | P0001               |
-| Name           | A human readable name for the policy.       | BasicDecisionPolicy |
-| Description    | A description for the policy.               | Basic checks.       |
-| Version        | An optional version for audit and persisted results. | 1.0.0 |
-| Rules          | The list of rules belonging to the policy.  |                     |
+| Name           | Description                                          | Example             |
+| -------------- | ---------------------------------------------------- | ------------------- |
+| Id             | A unique identifier for the policy.                  | P0001               |
+| Name           | A human readable name for the policy.                | BasicDecisionPolicy |
+| Description    | A description for the policy.                        | Basic checks.       |
+| Version        | An optional version for audit and persisted results. | 1.0.0               |
+| Rules          | The list of rules belonging to the policy.           |                     |
 
 A rule is an assertion which must be true to pass.
 
-| Name           | Description                                                   | Example     |
-| -------------- | ------------------------------------------------------------- | ----------- |
-| Id             | A unique identifier for the rule.                             | R0001       |
-| Name           | A human readable name for the rule.                           | ValidateAge |
-| Description    | A description for the rule.                                   | Checks the applicants age.            |
-| FailureMessage | A function that returns a failure message, if the rule fails. The request data is passed to the function. | ```(r) => $"{r.Name} is too young."```             |
-| Source         | The actual rule code to execute, the request data and a cancellation token are passed.                              | ```(r, c) => r.Age > 21```            |
+| Name           | Description                                                                                               | Example                            |
+| -------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| Id             | A unique identifier for the rule.                                                                         | R0001                              |
+| Name           | A human readable name for the rule.                                                                       | ValidateAge                        |
+| Description    | A description for the rule.                                                                               | Checks the applicants age.         |
+| FailureMessage | A function that returns a failure message, if the rule fails. The request data is passed to the function. | `(r) => $"{r.Name} is too young."` |
+| Source         | The actual rule code to execute, the request data and a cancellation token are passed.                    | `(r, c) => r.Age > 21`             |
 
 ### A simple dto to apply rules against
 
@@ -291,7 +290,7 @@ dotnet counters monitor --name FlowRules.Samples.WebApi --counters FlowRules
 
 Example output:
 
-```
+```csharp
 [FlowRules]
     P001 (ms)                                          100
     P001:MA001 (ms)                                     20
