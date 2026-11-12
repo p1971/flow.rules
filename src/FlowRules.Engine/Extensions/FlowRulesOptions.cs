@@ -13,7 +13,9 @@ public class FlowRulesOptions
     public bool ExportTelemetry { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the results repository to use.
+    /// Gets or sets the results repository to use. The repository is registered with a
+    /// scoped lifetime. To use a different lifetime, register
+    /// <c>IPolicyResultsRepository&lt;T&gt;</c> before calling <c>AddFlowRules</c>.
     /// </summary>
     public Type? ResultsRepository { get; set; }
 }

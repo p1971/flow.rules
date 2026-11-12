@@ -1,4 +1,8 @@
-﻿-- This needs to be run in sqlcmd mode
+﻿-- WARNING: INITIAL CREATION ONLY. This script drops and recreates the FlowRules
+-- schema tables. Running it against an existing installation permanently deletes
+-- all persisted request, policy, and rule audit history.
+--
+-- This needs to be run in sqlcmd mode
 --
 -- You can either use an existing database or create a new one
 --

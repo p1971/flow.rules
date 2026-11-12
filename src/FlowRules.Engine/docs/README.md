@@ -56,7 +56,9 @@ Policy<OrderRequest> policy = PolicyBuilder<OrderRequest>
 ### 2. Register with DI
 
 ```csharp
-// Single policy
+// Single policy with optional result persistence. Register the repository first
+// so its lifetime is preserved; omit this registration to use the no-op default.
+builder.Services.AddScoped<IPolicyResultsRepository<OrderRequest>, OrderResultsRepository>();
 builder.Services.AddFlowRules<OrderRequest>(() => policy);
 
 // Multiple policies across different DTO types via registry
@@ -70,6 +72,8 @@ builder.Services.AddFlowRules<OrderRequest>(() => policy, options =>
     options.ExportTelemetry = false;
 });
 ```
+
+Policy managers, registry entries, and `IPolicyRegistry` are scoped. Policies and telemetry remain singleton. Resolve managers and the registry from the current request or dependency-injection scope; custom repositories may be singleton, scoped, or transient.
 
 ### 3. Execute a policy
 
@@ -89,6 +93,8 @@ PolicyExecutionResult result = await registry.ExecuteAsync<OrderRequest>(
     request: new OrderRequest { Amount = 100, CustomerId = 42 },
     cancellationToken: ct);
 ```
+
+If a rule observes cancellation and throws `OperationCanceledException`, FlowRules records a failed rule result with a cancellation message. Policy result construction and result persistence then complete without the caller's cancelled token so the cancellation outcome remains auditable.
 
 ### 4. Inspect the result
 
@@ -121,6 +127,10 @@ builder.Services.AddOpenTelemetry()
 | Span - rule        | `flowrules.rule.execute`      |
 | Histogram - policy | `flowrules.policy.duration`   |
 | Histogram - rule   | `flowrules.rule.duration`     |
+
+Policy and rule spans use descriptive display names such as `Policy P001: Eligibility policy` and `Rule R001: Minimum age` in trace views. Stable policy and rule identifiers remain available as span tags for grouping. Rule spans include their containing policy, execution outcome, failure message, and exception event when applicable; policy spans include the aggregate outcome.
+
+Histograms use only stable policy and rule ids and names as dimensions. Correlation and execution-context ids remain available on trace spans, where unique per-execution values do not create unbounded metric series.
 
 ---
 

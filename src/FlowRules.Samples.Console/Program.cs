@@ -32,10 +32,11 @@ public static partial class Program
 
         ServiceCollection serviceCollection = GetServiceCollection(config);
 
-        ServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
+        await using ServiceProvider serviceProvider = serviceCollection.BuildServiceProvider();
+        using IServiceScope scope = serviceProvider.CreateScope();
 
-        ILogger<MortgageApplication> logger = serviceProvider.GetRequiredService<ILogger<MortgageApplication>>();
-        IPolicyManager<MortgageApplication> policyManager = serviceProvider.GetRequiredService<IPolicyManager<MortgageApplication>>();
+        ILogger<MortgageApplication> logger = scope.ServiceProvider.GetRequiredService<ILogger<MortgageApplication>>();
+        IPolicyManager<MortgageApplication> policyManager = scope.ServiceProvider.GetRequiredService<IPolicyManager<MortgageApplication>>();
 
         CancellationTokenSource cancellationTokenSource = new();
         CancellationToken cancellationToken = cancellationTokenSource.Token;
@@ -61,8 +62,6 @@ public static partial class Program
         LogRuleResults(logger, ltvResult.Id, ltvResult.Name, ltvResult.Passed, ltvResult.Message ?? string.Empty, ltvResult.Elapsed);
 
         await host.StartAsync(cancellationToken);
-
-        await serviceProvider.DisposeAsync();
     }
 
     private static ServiceCollection GetServiceCollection(IConfiguration config)
@@ -75,14 +74,10 @@ public static partial class Program
         serviceCollection
             .AddOptions<SqlServerPolicyResultsRepositoryConfig>()
             .Bind(config.GetSection(nameof(SqlServerPolicyResultsRepositoryConfig)));
+        serviceCollection.AddScoped<IPolicyResultsRepository<MortgageApplication>, SqlServerPolicyResultsRepository<MortgageApplication>>();
 #endif
 
-        serviceCollection.AddFlowRules<MortgageApplication>(() => PolicySetup.GetPolicy(), c =>
-        {
-#if SQLSERVER
-            c.ResultsRepository = typeof(SqlServerPolicyResultsRepository<MortgageApplication>);
-#endif
-        });
+        serviceCollection.AddFlowRules<MortgageApplication>(() => PolicySetup.GetPolicy());
         return serviceCollection;
     }
 

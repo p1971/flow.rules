@@ -60,6 +60,9 @@ public class RulesEngineComparisonBenchmark
         _scenario.ExecuteFlowRulesDiscount("warmup");
     }
 
+    [GlobalCleanup]
+    public void Cleanup() => _scenario.Dispose();
+
     public async Task VerifyEquivalentResults(TextWriter writer)
     {
         foreach (Workflow workflow in _scenario.DiscountWorkflows)

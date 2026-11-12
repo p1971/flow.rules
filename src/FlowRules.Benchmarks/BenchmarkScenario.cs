@@ -12,8 +12,11 @@ using RulesEngine.Models;
 
 namespace FlowRules.Benchmarks;
 
-internal sealed class BenchmarkScenario
+internal sealed class BenchmarkScenario : IDisposable
 {
+    private readonly ServiceProvider _serviceProvider;
+    private readonly IServiceScope _serviceScope;
+
     private BenchmarkScenario(
         IReadOnlyList<Workflow> discountWorkflows,
         RulesEngine.RulesEngine discountRulesEngine,
@@ -21,7 +24,9 @@ internal sealed class BenchmarkScenario
         DiscountOrderHistory discountOrderHistory,
         DiscountVisitHistory discountVisitHistory,
         DiscountInput discountInput,
-        IPolicyManager<DiscountInput> discountFlowRulesManager)
+        IPolicyManager<DiscountInput> discountFlowRulesManager,
+        ServiceProvider serviceProvider,
+        IServiceScope serviceScope)
     {
         DiscountWorkflows = discountWorkflows;
         DiscountRulesEngine = discountRulesEngine;
@@ -30,6 +35,8 @@ internal sealed class BenchmarkScenario
         DiscountVisitHistory = discountVisitHistory;
         DiscountInput = discountInput;
         DiscountFlowRulesManager = discountFlowRulesManager;
+        _serviceProvider = serviceProvider;
+        _serviceScope = serviceScope;
     }
 
     public IReadOnlyList<Workflow> DiscountWorkflows { get; }
@@ -67,8 +74,9 @@ internal sealed class BenchmarkScenario
             DiscountPolicyFactory.Create,
             options => options.ExportTelemetry = false);
 
-        IPolicyManager<DiscountInput> discountFlowRulesManager = services
-            .BuildServiceProvider()
+        ServiceProvider serviceProvider = services.BuildServiceProvider();
+        IServiceScope serviceScope = serviceProvider.CreateScope();
+        IPolicyManager<DiscountInput> discountFlowRulesManager = serviceScope.ServiceProvider
             .GetRequiredService<IPolicyManager<DiscountInput>>();
 
         return new BenchmarkScenario(
@@ -78,7 +86,9 @@ internal sealed class BenchmarkScenario
             discountOrderHistory,
             discountVisitHistory,
             discountInput,
-            discountFlowRulesManager);
+            discountFlowRulesManager,
+            serviceProvider,
+            serviceScope);
     }
 
     public void ExecuteFlowRulesDiscount(string correlationId)
@@ -87,5 +97,11 @@ internal sealed class BenchmarkScenario
             .Execute(correlationId, Guid.Empty, DiscountInput, CancellationToken.None)
             .GetAwaiter()
             .GetResult();
+    }
+
+    public void Dispose()
+    {
+        _serviceScope.Dispose();
+        _serviceProvider.Dispose();
     }
 }

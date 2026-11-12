@@ -161,6 +161,38 @@ public class PolicyManagerTests(ITestOutputHelper testOutputHelper)
     }
 
     [Fact]
+    public async Task Execute_Should_Persist_Cancellation_Results()
+    {
+        Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
+            .WithId("P001")
+            .WithName("test policy")
+            .WithRule("R001", "rule1", (model, token) =>
+            {
+                token.ThrowIfCancellationRequested();
+                return ValueTask.FromResult(true);
+            })
+            .Build();
+
+        PersonDataModel personDataModel = new("Test User", new DateOnly(2000, 01, 01));
+        IPolicyResultsRepository<PersonDataModel> repository =
+            Substitute.For<IPolicyResultsRepository<PersonDataModel>>();
+        using CancellationTokenSource cancellationTokenSource = new();
+        await cancellationTokenSource.CancelAsync();
+
+        PolicyManager<PersonDataModel> policyManager =
+            new(policy, repository, _flowRulesTelemetryService, _logger);
+
+        PolicyExecutionResult response = await policyManager.Execute(
+            "correlation-id",
+            Guid.NewGuid(),
+            personDataModel,
+            cancellationTokenSource.Token);
+
+        await repository.Received(1).PersistResults(personDataModel, response);
+        Assert.Equal("Rule execution was cancelled.", Assert.Single(response.RuleExecutionResults).Message);
+    }
+
+    [Fact]
     public async Task Execute_Should_NotThrow_OnFailingToPersistResults()
     {
         Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()

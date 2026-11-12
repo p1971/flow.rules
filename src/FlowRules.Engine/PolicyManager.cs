@@ -35,6 +35,7 @@ internal class PolicyManager<T>(
         logger.LogPolicyStartMessage(policy.Id, policy.Name, executionContextId);
 
         long startTime = TimeProvider.System.GetTimestamp();
+        using Activity? activity = flowRulesEventCounterSource.StartActivity(policy, executionContextId, correlationId);
 
         RuleExecutionResult[] response = await Execute(executionContextId, correlationId, request, cancellationToken);
 
@@ -48,6 +49,8 @@ internal class PolicyManager<T>(
                 break;
             }
         }
+
+        flowRulesEventCounterSource.SetPolicyResult(activity, passed);
 
         PolicyExecutionResult policyExecutionResult =
             new()
@@ -68,8 +71,6 @@ internal class PolicyManager<T>(
 
         flowRulesEventCounterSource.PolicyExecution<T>(
             policy,
-            executionContextId,
-            correlationId,
             TimeProvider.System.GetElapsedTime(startTime));
 
         return policyExecutionResult;
@@ -112,8 +113,6 @@ internal class PolicyManager<T>(
     {
         RuleExecutionResult[] ruleExecutionResults = new RuleExecutionResult[policy.Rules.Count];
 
-        using Activity? activity = flowRulesEventCounterSource.StartActivity(policy, executionContextId, correlationId);
-
         for (int index = 0; index < policy.Rules.Count; index++)
         {
             ruleExecutionResults[index] = await ExecuteRule(policy.Rules[index], executionContextId, correlationId, request, cancellationToken);
@@ -137,7 +136,7 @@ internal class PolicyManager<T>(
         Exception? exception = null;
         TimeSpan elapsed;
 
-        using Activity? activity = flowRulesEventCounterSource.StartActivity(rule, executionContextId, correlationId);
+        using Activity? activity = flowRulesEventCounterSource.StartActivity(policy, rule, executionContextId, correlationId);
 
         try
         {
@@ -156,23 +155,23 @@ internal class PolicyManager<T>(
                 flowRulesEventCounterSource.SetFailure(activity, message);
             }
         }
-        catch (OperationCanceledException)
+        catch (OperationCanceledException ex)
         {
             message = "Rule execution was cancelled.";
-            flowRulesEventCounterSource.SetFailure(activity, "cancelled");
+            flowRulesEventCounterSource.SetFailure(activity, "cancelled", ex);
             logger.LogRuleCancelled(rule.Id, rule.Name);
         }
         catch (Exception ex)
         {
             exception = ex;
             message = ex.Message;
-            flowRulesEventCounterSource.SetFailure(activity, message);
+            flowRulesEventCounterSource.SetFailure(activity, message, ex);
             logger.LogExceptionForRule(ex, rule.Id, rule.Name);
         }
         finally
         {
             elapsed = TimeProvider.System.GetElapsedTime(stampStart);
-            flowRulesEventCounterSource.RuleExecution<T>(policy, rule, executionContextId, correlationId, elapsed);
+            flowRulesEventCounterSource.RuleExecution<T>(policy, rule, elapsed);
         }
 
         return new RuleExecutionResult(

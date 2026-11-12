@@ -257,19 +257,24 @@ Where `PolicyExecutionResult` contains the policy and individual rule results.
 
 `FlowRules.Extensions.SqlServer` contains an implementation that writes the results to SQL Server.
 
-The [SqlServerPolicyResultsRepository.sql](https://github.com/p1971/flow.rules/blob/develop/src/FlowRules.Extensions.SqlServer/SQL/SqlServerPolicyResultsRepository.sql) can be used to create the database / schema required.
+The [SqlServerPolicyResultsRepository.sql](https://github.com/p1971/flow.rules/blob/main/src/FlowRules.Extensions.SqlServer/SQL/SqlServerPolicyResultsRepository.sql) initial-creation script can be used to create the required database and schema.
 
-In order to use the SQL Server implementation, it can be registered when registering the FlowRules.
+> [!WARNING]
+> This is not a migration script. It drops and recreates the FlowRules tables, permanently deleting all existing audit history if it is run again.
+
+Register a custom repository before registering FlowRules. Its lifetime is preserved; scoped is recommended for repositories that use request-scoped dependencies such as `DbContext`.
 
 ```csharp
-builder.Services.AddFlowRules<MortgageApplication>(PolicySetup.GetPolicy, (c) =>
-{
-    c.ResultsRepository = typeof(SqlServerPolicyResultsRepository<MortgageApplication>);
-});
+builder.Services.AddScoped<
+    IPolicyResultsRepository<MortgageApplication>,
+    SqlServerPolicyResultsRepository<MortgageApplication>>();
 
+builder.Services.AddFlowRules<MortgageApplication>(PolicySetup.GetPolicy);
 ```
 
-Custom implementations can be registered similarly.
+Singleton and transient repository registrations are also respected. Alternatively, setting `FlowRulesOptions.ResultsRepository` registers that repository type as scoped. Policy managers and `IPolicyRegistry` are scoped so they can safely consume any scoped repository; resolve them from the current dependency-injection scope.
+
+Cancellation is recorded as a failed rule result rather than propagated out of policy execution. The engine finishes producing the policy result and calls the configured results repository without the caller's cancellation token, so cancellation outcomes can still be written to the audit store.
 
 Telemetry is exported by default. To disable FlowRules telemetry registration, set `ExportTelemetry` to `false`:
 

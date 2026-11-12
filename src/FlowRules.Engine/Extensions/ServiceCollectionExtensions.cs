@@ -25,7 +25,9 @@ public static class ServiceCollectionExtensions
     /// that type; prefer <see cref="IPolicyRegistry"/> for id-based dispatch.
     /// <see cref="IPolicyResultsRepository{T}"/> is registered once per request type,
     /// not per policy id, so policies for the same <typeparamref name="T"/> share the
-    /// same results repository implementation.
+    /// same results repository implementation. An application may register that service
+    /// before calling this method to select its lifetime. A repository selected through
+    /// <see cref="FlowRulesOptions.ResultsRepository"/> is registered as scoped.
     /// </remarks>
     /// <typeparam name="T">The type that the rules will execute against.</typeparam>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
@@ -52,7 +54,7 @@ public static class ServiceCollectionExtensions
 
         if (options.ResultsRepository != null)
         {
-            services.TryAddSingleton(typeof(IPolicyResultsRepository<T>), options.ResultsRepository);
+            services.TryAddScoped(typeof(IPolicyResultsRepository<T>), options.ResultsRepository);
         }
         else
         {
@@ -68,7 +70,7 @@ public static class ServiceCollectionExtensions
             services.Replace(ServiceDescriptor.Singleton<IFlowRulesTelemetryService, NoOpFlowRulesTelemetryService>());
         }
 
-        services.AddKeyedSingleton<IPolicyManager<T>>(policyId, (sp, _) =>
+        services.AddKeyedScoped<IPolicyManager<T>>(policyId, (sp, _) =>
         {
             Policy<T> resolvedPolicy             = sp.GetRequiredKeyedService<Policy<T>>(policyId);
             IPolicyResultsRepository<T> repo     = sp.GetRequiredService<IPolicyResultsRepository<T>>();
@@ -79,12 +81,12 @@ public static class ServiceCollectionExtensions
 
         // Also register an unkeyed IPolicyManager<T> so existing code that injects
         // IPolicyManager<T> directly continues to work (last registration wins).
-        services.AddSingleton<IPolicyManager<T>>(sp =>
+        services.AddScoped<IPolicyManager<T>>(sp =>
             sp.GetRequiredKeyedService<IPolicyManager<T>>(policyId));
 
         // Register a typed, type-erased entry so AddFlowRulesRegistry() can collect
         // all policies and dispatch by id across different DTO types.
-        services.AddSingleton<IPolicyRegistryEntry>(sp =>
+        services.AddScoped<IPolicyRegistryEntry>(sp =>
         {
             IPolicyManager<T> manager = sp.GetRequiredKeyedService<IPolicyManager<T>>(policyId);
             return new PolicyRegistryEntry<T>(policyId, manager);
@@ -97,12 +99,14 @@ public static class ServiceCollectionExtensions
     /// Registers an <see cref="IPolicyRegistry"/> that aggregates all policies added via
     /// <see cref="AddFlowRules{T}"/> and allows dispatch by policy id.
     /// Call this once after all <c>AddFlowRules</c> registrations.
+    /// The registry is scoped so it can safely dispatch through scoped policy managers
+    /// and results repositories.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/>.</param>
     /// <returns>The <see cref="IServiceCollection"/> instance.</returns>
     public static IServiceCollection AddFlowRulesRegistry(this IServiceCollection services)
     {
-        services.AddSingleton<IPolicyRegistry, PolicyRegistry>();
+        services.AddScoped<IPolicyRegistry, PolicyRegistry>();
         return services;
     }
 }

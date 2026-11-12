@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Transactions;
 using Dapper;
@@ -13,6 +14,10 @@ namespace FlowRules.Extensions.SqlServer;
 public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
     where T : class
 {
+    private static readonly Regex SchemaNamePattern = new(
+        "^[A-Za-z_][A-Za-z0-9_]{0,127}$",
+        RegexOptions.CultureInvariant);
+
     private readonly SqlServerPolicyResultsRepositoryConfig _config;
 
     private readonly string _sqlInsertFlowRulesRequest;
@@ -28,9 +33,15 @@ public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
             throw new InvalidOperationException($"[{nameof(_config.ConnectionString)}] is not set.");
         }
 
-        if (string.IsNullOrEmpty(_config.SchemaName))
+        if (string.IsNullOrWhiteSpace(_config.SchemaName))
         {
             throw new InvalidOperationException($"[{nameof(_config.SchemaName)}] is not set.");
+        }
+
+        if (!SchemaNamePattern.IsMatch(_config.SchemaName))
+        {
+            throw new InvalidOperationException(
+                $"[{nameof(_config.SchemaName)}] must be a valid unquoted SQL identifier containing no more than 128 letters, digits, or underscores, and it cannot start with a digit.");
         }
             
         _sqlInsertFlowRulesRequest = @$"

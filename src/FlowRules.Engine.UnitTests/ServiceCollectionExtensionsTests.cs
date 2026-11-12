@@ -8,8 +8,6 @@ using FlowRules.Engine.Models;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-using NSubstitute;
-
 using Xunit;
 using Xunit.Abstractions;
 
@@ -42,16 +40,72 @@ public class ServiceCollectionExtensionsTests
     {
         Policy<PersonDataModel> policy = GetTestPolicy("P001");
 
-        IPolicyResultsRepository<PersonDataModel> mockResultsRepository =
-            Substitute.For<IPolicyResultsRepository<PersonDataModel>>();
-
         _subject.AddFlowRules(
             () => policy,
-            o => o.ResultsRepository = mockResultsRepository.GetType());
+            o => o.ResultsRepository = typeof(TrackingResultsRepository));
+
+        ServiceDescriptor descriptor = Assert.Single(
+            _subject,
+            item => item.ServiceType == typeof(IPolicyResultsRepository<PersonDataModel>));
+        Assert.Equal(ServiceLifetime.Scoped, descriptor.Lifetime);
 
         ServiceProvider serviceProvider = _subject.BuildServiceProvider();
 
-        AssertPolicyRegistered(serviceProvider, "P001", mockResultsRepository.GetType());
+        AssertPolicyRegistered(serviceProvider, "P001", typeof(TrackingResultsRepository));
+    }
+
+    [Theory]
+    [InlineData(ServiceLifetime.Singleton)]
+    [InlineData(ServiceLifetime.Scoped)]
+    [InlineData(ServiceLifetime.Transient)]
+    public void AddFlowRules_Should_Preserve_Application_Repository_Lifetime(ServiceLifetime lifetime)
+    {
+        Policy<PersonDataModel> policy = GetTestPolicy("P001");
+        _subject.Add(new ServiceDescriptor(
+            typeof(IPolicyResultsRepository<PersonDataModel>),
+            typeof(TrackingResultsRepository),
+            lifetime));
+
+        _subject.AddFlowRules<PersonDataModel>(() => policy);
+
+        ServiceDescriptor descriptor = Assert.Single(
+            _subject,
+            item => item.ServiceType == typeof(IPolicyResultsRepository<PersonDataModel>));
+        Assert.Equal(lifetime, descriptor.Lifetime);
+    }
+
+    [Fact]
+    public void AddFlowRules_Should_Resolve_Scoped_Manager_With_Scoped_Repository()
+    {
+        Policy<PersonDataModel> policy = GetTestPolicy("P001");
+        _subject.AddScoped<IPolicyResultsRepository<PersonDataModel>, TrackingResultsRepository>();
+        _subject.AddFlowRules<PersonDataModel>(() => policy);
+
+        using ServiceProvider serviceProvider = _subject.BuildServiceProvider(
+            new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
+
+        IPolicyManager<PersonDataModel> manager1;
+        IPolicyResultsRepository<PersonDataModel> repository1;
+        using (IServiceScope scope = serviceProvider.CreateScope())
+        {
+            manager1 = scope.ServiceProvider.GetRequiredKeyedService<IPolicyManager<PersonDataModel>>("P001");
+            Assert.Same(
+                manager1,
+                scope.ServiceProvider.GetRequiredKeyedService<IPolicyManager<PersonDataModel>>("P001"));
+
+            repository1 = scope.ServiceProvider.GetRequiredService<IPolicyResultsRepository<PersonDataModel>>();
+            Assert.Same(
+                repository1,
+                scope.ServiceProvider.GetRequiredService<IPolicyResultsRepository<PersonDataModel>>());
+        }
+
+        using IServiceScope secondScope = serviceProvider.CreateScope();
+        Assert.NotSame(
+            manager1,
+            secondScope.ServiceProvider.GetRequiredKeyedService<IPolicyManager<PersonDataModel>>("P001"));
+        Assert.NotSame(
+            repository1,
+            secondScope.ServiceProvider.GetRequiredService<IPolicyResultsRepository<PersonDataModel>>());
     }
 
     [Fact]
@@ -115,6 +169,7 @@ public class ServiceCollectionExtensionsTests
         _subject.AddFlowRules<PersonDataModel>(() => policy2);
 
         ServiceProvider serviceProvider = _subject.BuildServiceProvider();
+        using IServiceScope scope = serviceProvider.CreateScope();
 
         // Both policies should be independently resolvable by id.
         Policy<PersonDataModel> resolved1 = serviceProvider.GetRequiredKeyedService<Policy<PersonDataModel>>("P001");
@@ -124,8 +179,8 @@ public class ServiceCollectionExtensionsTests
         Assert.Equal("P002", resolved2.Id);
 
         // Each keyed manager should be backed by its own policy.
-        IPolicyManager<PersonDataModel> manager1 = serviceProvider.GetRequiredKeyedService<IPolicyManager<PersonDataModel>>("P001");
-        IPolicyManager<PersonDataModel> manager2 = serviceProvider.GetRequiredKeyedService<IPolicyManager<PersonDataModel>>("P002");
+        IPolicyManager<PersonDataModel> manager1 = scope.ServiceProvider.GetRequiredKeyedService<IPolicyManager<PersonDataModel>>("P001");
+        IPolicyManager<PersonDataModel> manager2 = scope.ServiceProvider.GetRequiredKeyedService<IPolicyManager<PersonDataModel>>("P002");
 
         Assert.NotSame(manager1, manager2);
     }
@@ -140,9 +195,11 @@ public class ServiceCollectionExtensionsTests
         _subject.AddFlowRules<PersonDataModel>(() => policy2);
         _subject.AddFlowRulesRegistry();
 
-        ServiceProvider serviceProvider = _subject.BuildServiceProvider();
+        ServiceProvider serviceProvider = _subject.BuildServiceProvider(
+            new ServiceProviderOptions { ValidateOnBuild = true, ValidateScopes = true });
+        using IServiceScope scope = serviceProvider.CreateScope();
 
-        IPolicyRegistry registry = serviceProvider.GetRequiredService<IPolicyRegistry>();
+        IPolicyRegistry registry = scope.ServiceProvider.GetRequiredService<IPolicyRegistry>();
 
         Assert.Equal(2, registry.PolicyIds.Count);
         Assert.Contains("P001", registry.PolicyIds);
@@ -154,17 +211,19 @@ public class ServiceCollectionExtensionsTests
         string policyId,
         Type resultsRepositoryType)
     {
+        using IServiceScope scope = serviceProvider.CreateScope();
+
         // Policy<T> is now keyed — resolve by id.
         Policy<PersonDataModel> policy = serviceProvider.GetRequiredKeyedService<Policy<PersonDataModel>>(policyId);
         Assert.NotNull(policy);
         Assert.Equal(policyId, policy.Id);
 
         IPolicyResultsRepository<PersonDataModel> repo =
-            serviceProvider.GetRequiredService<IPolicyResultsRepository<PersonDataModel>>();
+            scope.ServiceProvider.GetRequiredService<IPolicyResultsRepository<PersonDataModel>>();
         Assert.Equal(resultsRepositoryType, repo.GetType());
 
         // Unkeyed IPolicyManager<T> must still resolve for backward compatibility.
-        Assert.NotNull(serviceProvider.GetRequiredService<IPolicyManager<PersonDataModel>>());
+        Assert.NotNull(scope.ServiceProvider.GetRequiredService<IPolicyManager<PersonDataModel>>());
     }
 
     private static Policy<PersonDataModel> GetTestPolicy(string id)
@@ -175,5 +234,13 @@ public class ServiceCollectionExtensionsTests
             .WithDescription("policy description")
             .WithRule("R001", "test rule", (model, token) => Task.FromResult(true), description: "test description")
             .Build();
+    }
+
+    private sealed class TrackingResultsRepository : IPolicyResultsRepository<PersonDataModel>
+    {
+        public ValueTask PersistResults(
+            PersonDataModel request,
+            PolicyExecutionResult policyExecutionResult) =>
+            ValueTask.CompletedTask;
     }
 }
