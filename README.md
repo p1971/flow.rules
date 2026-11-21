@@ -4,19 +4,19 @@ A simple rules implementation for .NET 10. Intended for use within a microservic
 
 ## CI
 
-| Project | Build (main) | Build (develop) |
-| ------- | ----- | ----- |
-| [FlowRules](https://github.com/p1971/flow.rules.engine) | [![flowrules_build](https://github.com/p1971/flow.rules/actions/workflows/workflow.yml/badge.svg?branch=main)](https://github.com/p1971/flow.rules/actions/workflows/workflow.yml) | [![flowrules_build](https://github.com/p1971/flow.rules/actions/workflows/workflow.yml/badge.svg?branch=develop)](https://github.com/p1971/flow.rules/actions/workflows/workflow.yml) |
+[![flowrules_build](https://github.com/p1971/flow.rules/actions/workflows/workflow.yml/badge.svg?branch=main)](https://github.com/p1971/flow.rules/actions/workflows/workflow.yml)
+
+Create `feature/*` branches from `main` and open pull requests back to `main`.
 
 ## Testing
 
-[![codecov](https://codecov.io/gh/p1971/flow.rules/branch/develop/graph/badge.svg?token=WEFAEQe92g)](https://codecov.io/gh/p1971/flow.rules)
+[![codecov](https://codecov.io/gh/p1971/flow.rules/branch/main/graph/badge.svg?token=WEFAEQe92g)](https://codecov.io/gh/p1971/flow.rules)
 
 ## Packaging
 
-Packages from feature and develop branches are available on [github](https://github.com/p1971?tab=packages&repo_name=flow.rules).
+Pushes to `feature/*` publish prerelease packages to [GitHub Packages](https://github.com/p1971?tab=packages&repo_name=flow.rules).
 
-Release and symbol packages are available on [nuget.org](https://www.nuget.org/packages/FlowRules.Engine).
+Pushes to `main` publish release and symbol packages to [NuGet.org](https://www.nuget.org/packages/FlowRules.Engine). GitVersion bumps the patch version by default. To request a minor or major release, include `+semver: minor` or `+semver: major` in a commit message that lands on `main`.
 
 | Nuget | Description | Nuget |
 | ----- | ------- | ------ |
