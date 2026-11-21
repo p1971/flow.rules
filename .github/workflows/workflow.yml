@@ -3,7 +3,7 @@ name: flowrules_build
 on: [push, pull_request]
 
 permissions:
-  contents: read
+  contents: read  
 
 env:
   BuildConfiguration: Release
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      checks: write
+      checks: write             
     steps:
 
     - name: Checkout source code
@@ -109,6 +109,7 @@ jobs:
     permissions:
       contents: write
       packages: write
+      id-token: write
     steps:
 
       - name: download
@@ -129,6 +130,13 @@ jobs:
           dotnet nuget push ./nuget_packages/*.nupkg --source "https://nuget.pkg.github.com/p1971/index.json" --skip-duplicate --api-key ${{secrets.GITHUB_TOKEN}}          
         shell: bash
 
+      - name: NuGet login (OIDC → temp API key)
+        if: github.ref == 'refs/heads/main'
+        uses: NuGet/login@v1
+        id: login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+    
       - name: Push generated package to Nuget registry
         if: github.ref == 'refs/heads/main'
         run: |
