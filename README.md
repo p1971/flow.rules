@@ -1,6 +1,6 @@
 # flow rules ![MIT](https://badgen.net/badge/license/MIT/green)
 
-A simple rules implementation for dotnet. Intended for use within a microservice implementation.
+A simple rules implementation for .NET 10. Intended for use within a microservice implementation.
 
 ## CI
 
@@ -274,9 +274,11 @@ builder.Services.AddFlowRules<MortgageApplication>(PolicySetup.GetPolicy);
 
 Singleton and transient repository registrations are also respected. Alternatively, setting `FlowRulesOptions.ResultsRepository` registers that repository type as scoped. Policy managers and `IPolicyRegistry` are scoped so they can safely consume any scoped repository; resolve them from the current dependency-injection scope.
 
+Results repositories are shared by all policies for the same request type. Selecting a custom repository through `ResultsRepository` replaces an earlier no-op default for that type. Conflicting custom repository types are rejected during registration. An existing registration of the same type retains its lifetime; for a repository registered with a factory, omit `ResultsRepository`.
+
 Cancellation is recorded as a failed rule result rather than propagated out of policy execution. The engine finishes producing the policy result and calls the configured results repository without the caller's cancellation token, so cancellation outcomes can still be written to the audit store.
 
-Telemetry is exported by default. To disable FlowRules telemetry registration, set `ExportTelemetry` to `false`:
+Telemetry is emitted by default. Set `ExportTelemetry` to `false` to disable it for one policy. Other policies keep their own telemetry setting, regardless of registration order:
 
 ```csharp
 builder.Services.AddFlowRules<MortgageApplication>(PolicySetup.GetPolicy, (c) =>
@@ -287,22 +289,13 @@ builder.Services.AddFlowRules<MortgageApplication>(PolicySetup.GetPolicy, (c) =>
 
 ### Monitoring Performance
 
-Built-in performance counters track execution time for policies and individual rules:
+Built-in histograms track execution time for policies and individual rules:
 
 ```bash
-dotnet counters monitor --name FlowRules.Samples.WebApi --counters FlowRules
+dotnet counters monitor --name FlowRules.Samples.WebApi --counters FlowRules.Engine
 ```
 
-Example output:
-
-```csharp
-[FlowRules]
-    P001 (ms)                                          100
-    P001:MA001 (ms)                                     20
-    P001:MA002 (ms)                                     30
-    P001:MA003 (ms)                                     40
-    P001:MA004 (ms)                                     50
-```
+The `flowrules.policy.duration` and `flowrules.rule.duration` histograms record milliseconds, with policy and rule identifiers as dimensions. Register the `FlowRulesTelemetry.MeterName` meter with your OpenTelemetry exporter to collect them.
 
 ## Examples
 
@@ -318,7 +311,7 @@ Run the samples with:
 dotnet run --project ./src/FlowRules.Samples.WebApi
 ```
 
-Test the API endpoints using the included `.http` files or your preferred REST client.
+Test the API endpoints using the included [ApiTest.rest](./src/FlowRules.Samples.WebApi/ApiTest.rest) file or your preferred REST client.
 
 ## Contributing
 

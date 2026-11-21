@@ -1,6 +1,6 @@
 # FlowRules.Engine
 
-A lightweight, strongly-typed rules engine for .NET 8 and .NET 10.
+A lightweight, strongly-typed rules engine for .NET 10.
 
 Define business policies as composable, async rules against any request model, execute them via dependency injection, and get a structured result per rule and per policy - with built-in OpenTelemetry traces, metrics, and logs.
 
@@ -66,7 +66,7 @@ builder.Services.AddFlowRules<OrderRequest>(() => orderPolicy);
 builder.Services.AddFlowRules<CustomerRequest>(() => customerPolicy);
 builder.Services.AddFlowRulesRegistry();
 
-// Disable FlowRules telemetry if the application should not export it
+// Alternatively, disable telemetry for this policy only
 builder.Services.AddFlowRules<OrderRequest>(() => policy, options =>
 {
     options.ExportTelemetry = false;
@@ -74,6 +74,8 @@ builder.Services.AddFlowRules<OrderRequest>(() => policy, options =>
 ```
 
 Policy managers, registry entries, and `IPolicyRegistry` are scoped. Policies and telemetry remain singleton. Resolve managers and the registry from the current request or dependency-injection scope; custom repositories may be singleton, scoped, or transient.
+
+`ExportTelemetry` applies only to the policy being registered, regardless of registration order. Results repositories are shared by all policies for the same request type. Setting `ResultsRepository` replaces an earlier no-op default; conflicting custom repository types throw during registration. An application registration of the same type keeps its lifetime. For factory registrations, register the repository directly and omit `ResultsRepository`.
 
 ### 3. Execute a policy
 

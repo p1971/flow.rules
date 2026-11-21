@@ -1,6 +1,9 @@
 name: flowrules_build
 
-on: [push]
+on: [push, pull_request]
+
+permissions:
+  contents: read
 
 env:
   BuildConfiguration: Release
@@ -10,6 +13,9 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write
     steps:
 
     - name: Checkout source code
@@ -57,7 +63,7 @@ jobs:
 
     - name: Test Report
       uses: dorny/test-reporter@v1
-      if: success() || failure()
+      if: github.event_name == 'push' && (success() || failure())
       with:
         name: Tests            
         path: ./**/TestResults.xml 
@@ -94,8 +100,15 @@ jobs:
         path: /home/runner/nuget
 
   publish-packages:
+    if: >-
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' ||
+      startsWith(github.ref, 'refs/heads/releases/') || startsWith(github.ref, 'refs/heads/feature/'))
     runs-on: ubuntu-latest
     needs: build
+    permissions:
+      contents: write
+      packages: write
     steps:
 
       - name: download
@@ -111,19 +124,19 @@ jobs:
             echo "VERSION=$version" >> $GITHUB_ENV
 
       - name: Push generated package to GitHub registry
-        if: contains(github.ref, 'develop') || contains(github.ref, 'releases') || contains(github.ref, 'feature')
+        if: github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/releases/') || startsWith(github.ref, 'refs/heads/feature/')
         run: |
           dotnet nuget push ./nuget_packages/*.nupkg --source "https://nuget.pkg.github.com/p1971/index.json" --skip-duplicate --api-key ${{secrets.GITHUB_TOKEN}}          
         shell: bash
 
       - name: Push generated package to Nuget registry
-        if: contains(github.ref, 'main')
+        if: github.ref == 'refs/heads/main'
         run: |
           dotnet nuget push ./nuget_packages/*.nupkg --source "https://api.nuget.org/v3/index.json" --skip-duplicate --api-key ${{secrets.NUGET_API_KEY}}          
         shell: bash
 
       - name: Create Release
-        if: contains(github.ref, 'main')
+        if: github.ref == 'refs/heads/main'
         id: create_release
         uses: ncipollo/release-action@v1        
         with:

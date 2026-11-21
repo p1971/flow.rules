@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Linq;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -14,6 +16,10 @@ namespace FlowRules.Extensions.SqlServer;
 public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
     where T : class
 {
+    // Seven parameters per rule plus the shared policy result id stay below
+    // SQL Server's 2,100-parameter limit and 1,000-row VALUES limit.
+    private const int RuleInsertBatchSize = 250;
+
     private static readonly Regex SchemaNamePattern = new(
         "^[A-Za-z_][A-Za-z0-9_]{0,127}$",
         RegexOptions.CultureInvariant);
@@ -66,7 +72,6 @@ public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
                 INSERT INTO [{_config.SchemaName}].[FlowRulesRuleResult]
                     (FlowRulesPolicyResult_Id, RuleId, RuleName, RuleDescription, Passed, Message, Elapsed, Exception)
                 VALUES
-                    (@FlowRulesPolicyResult_Id, @RuleId, @RuleName, @RuleDescription, @Passed, @Message, @Elapsed, @Exception)
             ";
     }
 
@@ -76,7 +81,7 @@ public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
 
         await using SqlConnection connection = new(_config.ConnectionString);
 
-        connection.Open();
+        await connection.OpenAsync();
 
         int requestId = await connection.ExecuteScalarAsync<int>(_sqlInsertFlowRulesRequest, new
         {
@@ -94,19 +99,32 @@ public class SqlServerPolicyResultsRepository<T> : IPolicyResultsRepository<T>
             Version = policyExecutionResult.Version
         });
 
-        foreach (RuleExecutionResult? ruleResult in policyExecutionResult.RuleExecutionResults)
+        foreach (RuleExecutionResult[] batch in policyExecutionResult.RuleExecutionResults.Chunk(RuleInsertBatchSize))
         {
-            await connection.ExecuteAsync(_sqlInsertFlowRulesRuleResult, new
+            StringBuilder sql = new(_sqlInsertFlowRulesRuleResult);
+            DynamicParameters parameters = new();
+            parameters.Add("FlowRulesPolicyResult_Id", policyResultId);
+
+            for (int index = 0; index < batch.Length; index++)
             {
-                FlowRulesPolicyResult_Id = policyResultId,
-                RuleId = ruleResult.Id,
-                RuleName = ruleResult.Name,
-                RuleDescription = ruleResult.Description,
-                Passed = ruleResult.Passed,
-                Message = ruleResult.Message,
-                Elapsed = ruleResult.Elapsed,
-                Exception = ruleResult.Exception?.Message
-            });
+                if (index > 0)
+                {
+                    sql.Append(',');
+                }
+
+                sql.Append($"(@FlowRulesPolicyResult_Id, @RuleId{index}, @RuleName{index}, @RuleDescription{index}, @Passed{index}, @Message{index}, @Elapsed{index}, @Exception{index})");
+
+                RuleExecutionResult ruleResult = batch[index];
+                parameters.Add($"RuleId{index}", ruleResult.Id);
+                parameters.Add($"RuleName{index}", ruleResult.Name);
+                parameters.Add($"RuleDescription{index}", ruleResult.Description);
+                parameters.Add($"Passed{index}", ruleResult.Passed);
+                parameters.Add($"Message{index}", ruleResult.Message);
+                parameters.Add($"Elapsed{index}", ruleResult.Elapsed);
+                parameters.Add($"Exception{index}", ruleResult.Exception?.Message);
+            }
+
+            await connection.ExecuteAsync(sql.ToString(), parameters);
         }
 
         scope.Complete();

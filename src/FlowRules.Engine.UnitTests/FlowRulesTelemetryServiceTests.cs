@@ -100,6 +100,7 @@ public class FlowRulesTelemetryServiceTests
     [Fact]
     public void Metrics_Should_Only_Use_Stable_Policy_And_Rule_Dimensions()
     {
+        string policyId = Guid.NewGuid().ToString();
         List<(string InstrumentName, Dictionary<string, object?> Tags)> measurements = [];
 
         using MeterListener listener = new();
@@ -118,12 +119,16 @@ public class FlowRulesTelemetryServiceTests
                 copiedTags.Add(tag.Key, tag.Value);
             }
 
-            measurements.Add((instrument.Name, copiedTags));
+            if (copiedTags.TryGetValue("policy.id", out object? measuredPolicyId)
+                && measuredPolicyId?.ToString() == policyId)
+            {
+                measurements.Add((instrument.Name, copiedTags));
+            }
         });
         listener.Start();
 
         Policy<PersonDataModel> policy = PolicyBuilder<PersonDataModel>.Create()
-            .WithId("P001")
+            .WithId(policyId)
             .WithName("Person policy")
             .WithRule("R001", "Person rule", (_, _) => ValueTask.FromResult(true))
             .Build();
