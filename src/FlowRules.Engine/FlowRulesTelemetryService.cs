@@ -12,13 +12,15 @@ internal sealed class FlowRulesTelemetryService : IFlowRulesTelemetryService
 {
     private const string PolicyIdKey = "policy.id";
     private const string PolicyNameKey = "policy.name";
+    private const string PolicyPassedKey = "policy.passed";
     private const string RuleIdKey = "rule.id";
     private const string RuleNameKey = "rule.name";
+    private const string RulePassedKey = "rule.passed";
     private const string RuleFailKey           = "rule.fail";
     private const string CorrelationIdKey      = "correlation.id";
     private const string ExecutionContextIdKey = "execution.context.id";
 
-    // Stable operation names for span grouping in tracing backends (Jaeger, Grafana Tempo, etc.).
+    // Stable Activity operation names; display names add policy and rule context in trace views.
     private const string PolicyExecuteOperation = "flowrules.policy.execute";
     private const string RuleExecuteOperation   = "flowrules.rule.execute";
 
@@ -43,7 +45,7 @@ internal sealed class FlowRulesTelemetryService : IFlowRulesTelemetryService
     }
 
     /// <inheritdoc/>
-    public void PolicyExecution<T>(Policy<T> policy, Guid contextId, string correlationId, TimeSpan elapsedTime)
+    public void PolicyExecution<T>(Policy<T> policy, TimeSpan elapsedTime)
         where T : class
     {
         ArgumentNullException.ThrowIfNull(policy);
@@ -52,13 +54,11 @@ internal sealed class FlowRulesTelemetryService : IFlowRulesTelemetryService
         {
             { PolicyIdKey, policy.Id },
             { PolicyNameKey, policy.Name },
-            { ExecutionContextIdKey, contextId },
-            { CorrelationIdKey, correlationId },
         });
     }
 
     /// <inheritdoc/>
-    public void RuleExecution<T>(Policy<T> policy, Rule<T> rule, Guid contextId, string correlationId, TimeSpan elapsedTime)
+    public void RuleExecution<T>(Policy<T> policy, Rule<T> rule, TimeSpan elapsedTime)
         where T : class
     {
         ArgumentNullException.ThrowIfNull(policy);
@@ -70,8 +70,6 @@ internal sealed class FlowRulesTelemetryService : IFlowRulesTelemetryService
             { PolicyNameKey, policy.Name },
             { RuleIdKey, rule.Id },
             { RuleNameKey, rule.Name },
-            { ExecutionContextIdKey, contextId },
-            { CorrelationIdKey, correlationId },
         });
     }
 
@@ -80,6 +78,11 @@ internal sealed class FlowRulesTelemetryService : IFlowRulesTelemetryService
         where T : class
     {
         Activity? activity = PolicyActivitySource.StartActivity(name: PolicyExecuteOperation);
+
+        if (activity is not null)
+        {
+            activity.DisplayName = $"Policy {policy.Id}: {policy.Name}";
+        }
 
         activity?.SetTag(PolicyIdKey, policy.Id);
         activity?.SetTag(PolicyNameKey, policy.Name);
@@ -90,11 +93,18 @@ internal sealed class FlowRulesTelemetryService : IFlowRulesTelemetryService
     }
 
     /// <inheritdoc/>
-    public Activity? StartActivity<T>(Rule<T> rule, Guid contextId, string correlationId)
+    public Activity? StartActivity<T>(Policy<T> policy, Rule<T> rule, Guid contextId, string correlationId)
         where T : class
     {
         Activity? activity = PolicyActivitySource.StartActivity(name: RuleExecuteOperation);
 
+        if (activity is not null)
+        {
+            activity.DisplayName = $"Rule {rule.Id}: {rule.Name}";
+        }
+
+        activity?.SetTag(PolicyIdKey, policy.Id);
+        activity?.SetTag(PolicyNameKey, policy.Name);
         activity?.SetTag(RuleIdKey, rule.Id);
         activity?.SetTag(RuleNameKey, rule.Name);
         activity?.SetTag(ExecutionContextIdKey, contextId);
@@ -104,13 +114,36 @@ internal sealed class FlowRulesTelemetryService : IFlowRulesTelemetryService
     }
 
     /// <inheritdoc/>
-    public void SetSuccess(Activity? activity) =>
-        activity?.SetStatus(ActivityStatusCode.Ok);
+    public void SetPolicyResult(Activity? activity, bool passed)
+    {
+        activity?.SetTag(PolicyPassedKey, passed);
+        activity?.SetStatus(passed ? ActivityStatusCode.Ok : ActivityStatusCode.Error);
+    }
 
     /// <inheritdoc/>
-    public void SetFailure(Activity? activity, string errorMessage)
+    public void SetSuccess(Activity? activity)
     {
+        activity?.SetTag(RulePassedKey, true);
+        activity?.SetStatus(ActivityStatusCode.Ok);
+    }
+
+    /// <inheritdoc/>
+    public void SetFailure(Activity? activity, string errorMessage, Exception? exception = null)
+    {
+        activity?.SetTag(RulePassedKey, false);
         activity?.SetStatus(ActivityStatusCode.Error);
         activity?.SetTag(RuleFailKey, errorMessage);
+
+        if (activity is not null && exception is not null)
+        {
+            activity.AddEvent(new ActivityEvent(
+                "exception",
+                tags: new ActivityTagsCollection
+                {
+                    { "exception.type", exception.GetType().FullName },
+                    { "exception.message", exception.Message },
+                    { "exception.stacktrace", exception.ToString() },
+                }));
+        }
     }
 }
