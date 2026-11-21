@@ -11,26 +11,22 @@ namespace FlowRules.Engine.Interfaces
     internal interface IFlowRulesTelemetryService
     {
         /// <summary>
-        /// Tracks the execution of a policy, recording telemetry data such as execution time and context information.
+        /// Tracks policy execution time using stable policy dimensions.
         /// </summary>
         /// <typeparam name="T">The type of the object the policy is executed against.</typeparam>
         /// <param name="policy">The policy being executed.</param>
-        /// <param name="contextId">The unique identifier for the execution context.</param>
-        /// <param name="correlationId">The correlation identifier for tracking related operations.</param>
         /// <param name="elapsedTime">The time taken to execute the policy.</param>
-        void PolicyExecution<T>(Policy<T> policy, Guid contextId, string correlationId, TimeSpan elapsedTime)
+        void PolicyExecution<T>(Policy<T> policy, TimeSpan elapsedTime)
             where T : class;
 
         /// <summary>
-        /// Tracks the execution of a specific rule within a policy, recording telemetry data such as execution time and identifiers.
+        /// Tracks rule execution time using stable policy and rule dimensions.
         /// </summary>
         /// <typeparam name="T">The type the policy and rule are executed against.</typeparam>
         /// <param name="policy">The policy containing the rule being executed.</param>
         /// <param name="rule">The rule being executed.</param>
-        /// <param name="contextId">The unique identifier for the execution context.</param>
-        /// <param name="correlationId">The identifier used to correlate related operations.</param>
         /// <param name="elapsedTime">The time taken to execute the rule.</param>
-        void RuleExecution<T>(Policy<T> policy, Rule<T> rule, Guid contextId, string correlationId, TimeSpan elapsedTime)
+        void RuleExecution<T>(Policy<T> policy, Rule<T> rule, TimeSpan elapsedTime)
             where T : class;
 
         /// <summary>
@@ -51,14 +47,22 @@ namespace FlowRules.Engine.Interfaces
         /// Starts a telemetry activity for the execution of a specific rule within a policy.
         /// </summary>
         /// <typeparam name="T">The type of the object the rule operates on.</typeparam>
+        /// <param name="policy">The policy containing the rule.</param>
         /// <param name="rule">The rule for which the activity is being started.</param>
         /// <param name="contextId">The unique identifier for the execution context.</param>
         /// <param name="correlationId">The correlation identifier used to track related operations.</param>
         /// <returns>
         /// An <see cref="Activity"/> instance representing the telemetry activity, or <c>null</c> if the activity could not be started.
         /// </returns>
-        Activity? StartActivity<T>(Rule<T> rule, Guid contextId, string correlationId)
+        Activity? StartActivity<T>(Policy<T> policy, Rule<T> rule, Guid contextId, string correlationId)
             where T : class;
+
+        /// <summary>
+        /// Records the aggregate policy outcome and updates the activity status.
+        /// </summary>
+        /// <param name="activity">The policy activity, or <c>null</c> when tracing is disabled.</param>
+        /// <param name="passed">Whether every rule in the policy passed.</param>
+        void SetPolicyResult(Activity? activity, bool passed);
 
         /// <summary>
         /// Marks the specified activity as successful by setting its status to <see cref="ActivityStatusCode.Ok"/>.
@@ -78,6 +82,7 @@ namespace FlowRules.Engine.Interfaces
         /// <param name="errorMessage">
         /// A string containing the error message that describes the failure.
         /// </param>
-        void SetFailure(Activity? activity, string errorMessage);
+        /// <param name="exception">The exception that caused the failure, if any.</param>
+        void SetFailure(Activity? activity, string errorMessage, Exception? exception = null);
     }
 }

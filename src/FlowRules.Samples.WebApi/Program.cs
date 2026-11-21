@@ -16,14 +16,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services
     .AddOptions<SqlServerPolicyResultsRepositoryConfig>()
     .Bind(builder.Configuration.GetSection(nameof(SqlServerPolicyResultsRepositoryConfig)));
+builder.Services.AddScoped<IPolicyResultsRepository<MortgageApplication>, SqlServerPolicyResultsRepository<MortgageApplication>>();
 #endif
 
-builder.Services.AddFlowRules<MortgageApplication>(PolicySetup.GetPolicy, (c) =>
-{
-#if SQLSERVER
-    c.ResultsRepository = typeof(SqlServerPolicyResultsRepository<MortgageApplication>);
-#endif
-});
+builder.Services.AddFlowRules<MortgageApplication>(PolicySetup.GetPolicy);
 
 builder.AddServiceDefaults();
 
@@ -41,7 +37,7 @@ app.MapPost("/_execute", async (
 
     PolicyExecutionResult results = await policyManager.Execute(correlationId, Guid.NewGuid(), mortgageApplication, cancellationToken);
 
-    return results;
+    return Results.Ok(PolicyExecutionResponse.From(results));
 });
 
 app.Run();

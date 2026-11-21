@@ -10,13 +10,13 @@ namespace FlowRules.Engine;
 internal sealed class NoOpFlowRulesTelemetryService : IFlowRulesTelemetryService
 {
     /// <inheritdoc/>
-    public void PolicyExecution<T>(Policy<T> policy, Guid contextId, string correlationId, TimeSpan elapsedTime)
+    public void PolicyExecution<T>(Policy<T> policy, TimeSpan elapsedTime)
         where T : class
     {
     }
 
     /// <inheritdoc/>
-    public void RuleExecution<T>(Policy<T> policy, Rule<T> rule, Guid contextId, string correlationId, TimeSpan elapsedTime)
+    public void RuleExecution<T>(Policy<T> policy, Rule<T> rule, TimeSpan elapsedTime)
         where T : class
     {
     }
@@ -26,8 +26,13 @@ internal sealed class NoOpFlowRulesTelemetryService : IFlowRulesTelemetryService
         where T : class => null;
 
     /// <inheritdoc/>
-    public Activity? StartActivity<T>(Rule<T> rule, Guid contextId, string correlationId)
+    public Activity? StartActivity<T>(Policy<T> policy, Rule<T> rule, Guid contextId, string correlationId)
         where T : class => null;
+
+    /// <inheritdoc/>
+    public void SetPolicyResult(Activity? activity, bool passed)
+    {
+    }
 
     /// <inheritdoc/>
     public void SetSuccess(Activity? activity)
@@ -35,7 +40,7 @@ internal sealed class NoOpFlowRulesTelemetryService : IFlowRulesTelemetryService
     }
 
     /// <inheritdoc/>
-    public void SetFailure(Activity? activity, string errorMessage)
+    public void SetFailure(Activity? activity, string errorMessage, Exception? exception = null)
     {
     }
 }
